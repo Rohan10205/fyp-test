@@ -32,10 +32,13 @@ A secure, client-side password manager built as a Chrome extension for a Final Y
 
 ## Security Model
 
-- The master password is **never stored in plain text**; only its SHA-256 hash is persisted for verification.
-- Each stored password is encrypted with **AES-256-GCM** using a key derived from the master password via **PBKDF2**.
+- The master password is **never stored in plain text**; a PBKDF2-derived verification hash (100,000 iterations, SHA-256) is persisted for unlock verification — making brute-force attacks computationally expensive.
+- A **cryptographically random 16-byte salt** is generated with `crypto.getRandomValues` when the vault is first created and stored in `chrome.storage.local`. This salt is unique per vault, defeating pre-computed (rainbow-table) attacks.
+- Each stored password is encrypted with **AES-256-GCM** using a key derived from the master password and the per-vault random salt via **PBKDF2** (100,000 iterations).
 - A fresh random **12-byte IV** is generated for every encryption operation.
 - All cryptographic operations run locally inside the browser — no data is transmitted to any server.
+
+> **Note:** The salt is not secret — it is intentionally stored alongside the encrypted data. Its purpose is to ensure that two users with the same master password produce different cryptographic material, and to prevent pre-computation attacks.
 
 ---
 

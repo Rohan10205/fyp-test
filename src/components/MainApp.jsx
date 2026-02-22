@@ -9,7 +9,7 @@ const TABS = [
   { id: "generator", label: "Generator", icon: "" },
 ]
 
-export default function MainApp({ masterPassword, onLock }) {
+export default function MainApp({ masterPassword, vaultSalt, onLock }) {
   const [tab, setTab]                   = useState("passwords")
   const [prefillPassword, setPrefill]   = useState("")
 
@@ -47,10 +47,11 @@ export default function MainApp({ masterPassword, onLock }) {
 
       {/* Tab panels */}
       <main className="app-body">
-        {tab === "passwords" && <PasswordsTab masterPassword={masterPassword} />}
+        {tab === "passwords" && <PasswordsTab masterPassword={masterPassword} vaultSalt={vaultSalt} />}
         {tab === "add"       && (
           <AddTab
             masterPassword={masterPassword}
+            vaultSalt={vaultSalt}
             prefillPassword={prefillPassword}
             onSaved={() => setTab("passwords")}
             onClearPrefill={() => setPrefill("")}

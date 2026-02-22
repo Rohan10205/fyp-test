@@ -4,7 +4,7 @@ import { decryptPassword } from "../utils/crypto"
 import { useToast } from "../context/ToastContext"
 import PasswordCard from "./PasswordCard"
 
-export default function PasswordsTab({ masterPassword }) {
+export default function PasswordsTab({ masterPassword, vaultSalt }) {
   const showToast    = useToast()
   const [items, setItems]       = useState([])
   const [search, setSearch]     = useState("")
@@ -21,7 +21,7 @@ export default function PasswordsTab({ masterPassword }) {
     const decrypted = await Promise.all(
       raw.map(async (p) => {
         try {
-          return { ...p, plain: await decryptPassword(p.password, masterPassword) }
+          return { ...p, plain: await decryptPassword(p.password, masterPassword, vaultSalt) }
         } catch {
           return { ...p, plain: null }
         }

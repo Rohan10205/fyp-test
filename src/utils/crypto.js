@@ -1,14 +1,37 @@
-// ── Hashing ───────────────────────────────────────────────────────────────────
-export async function hashString(str) {
-  const data = new TextEncoder().encode(str)
-  const hash = await crypto.subtle.digest("SHA-256", data)
-  return Array.from(new Uint8Array(hash))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("")
+// ── Salt generation ───────────────────────────────────────────────────────────
+// Generates a cryptographically random 16-byte salt encoded as base64.
+// Call once when creating a new vault and persist it in chrome.storage.local.
+export function generateSalt() {
+  return btoa(String.fromCharCode(...Array.from(crypto.getRandomValues(new Uint8Array(16)))))
+}
+
+// ── Master-password verification hash ────────────────────────────────────────
+// Uses PBKDF2 (slow KDF) instead of raw SHA-256 so that brute-force attacks
+// against the stored hash are computationally expensive.
+export async function deriveVerificationHash(password, salt) {
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(password),
+    { name: "PBKDF2" },
+    false,
+    ["deriveBits"]
+  )
+  const bits = await crypto.subtle.deriveBits(
+    {
+      name: "PBKDF2",
+      salt: new TextEncoder().encode(salt),
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    256
+  )
+  return btoa(String.fromCharCode(...new Uint8Array(bits)))
 }
 
 // ── Key derivation ────────────────────────────────────────────────────────────
-async function getEncryptionKey(masterPassword) {
+// `salt` must be the per-vault random salt returned by generateSalt().
+async function getEncryptionKey(masterPassword, salt) {
   const keyMaterial = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(masterPassword),
@@ -19,7 +42,7 @@ async function getEncryptionKey(masterPassword) {
   return crypto.subtle.deriveKey(
     {
       name: "PBKDF2",
-      salt: new TextEncoder().encode("vaultword-salt-v1"),
+      salt: new TextEncoder().encode(salt),
       iterations: 100000,
       hash: "SHA-256",
     },
@@ -31,8 +54,8 @@ async function getEncryptionKey(masterPassword) {
 }
 
 // ── Encrypt ───────────────────────────────────────────────────────────────────
-export async function encryptPassword(password, masterPassword) {
-  const key = await getEncryptionKey(masterPassword)
+export async function encryptPassword(password, masterPassword, salt) {
+  const key = await getEncryptionKey(masterPassword, salt)
   const iv = crypto.getRandomValues(new Uint8Array(12))
   const encrypted = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv },
@@ -46,8 +69,8 @@ export async function encryptPassword(password, masterPassword) {
 }
 
 // ── Decrypt ───────────────────────────────────────────────────────────────────
-export async function decryptPassword(encryptedPassword, masterPassword) {
-  const key = await getEncryptionKey(masterPassword)
+export async function decryptPassword(encryptedPassword, masterPassword, salt) {
+  const key = await getEncryptionKey(masterPassword, salt)
   const combined = Uint8Array.from(atob(encryptedPassword), (c) => c.charCodeAt(0))
   const decrypted = await crypto.subtle.decrypt(
     { name: "AES-GCM", iv: combined.slice(0, 12) },

@@ -6,6 +6,7 @@ import { chromeGet } from "./utils/storage"
 
 export default function App() {
   const [masterPassword, setMasterPassword] = useState(null) // null = locked
+  const [vaultSalt, setVaultSalt]           = useState(null)
   const [hasVault, setHasVault]             = useState(null) // null = loading
 
   useEffect(() => {
@@ -14,12 +15,14 @@ export default function App() {
     )
   }, [])
 
-  function handleUnlock(password) {
+  function handleUnlock(password, salt) {
     setMasterPassword(password)
+    setVaultSalt(salt)
   }
 
   function handleLock() {
     setMasterPassword(null)
+    setVaultSalt(null)
   }
 
   if (hasVault === null) return null // loading
@@ -27,13 +30,13 @@ export default function App() {
   return (
     <ToastProvider>
       {masterPassword ? (
-        <MainApp masterPassword={masterPassword} onLock={handleLock} />
+        <MainApp masterPassword={masterPassword} vaultSalt={vaultSalt} onLock={handleLock} />
       ) : (
         <LockScreen
           hasVault={hasVault}
-          onUnlocked={(pwd) => {
+          onUnlocked={(pwd, salt) => {
             setHasVault(true)
-            handleUnlock(pwd)
+            handleUnlock(pwd, salt)
           }}
         />
       )}
