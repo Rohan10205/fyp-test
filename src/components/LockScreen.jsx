@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { hashString } from "../utils/crypto"
+import { generateSalt, deriveVerificationHash } from "../utils/crypto"
 import { chromeGet, chromeSet } from "../utils/storage"
 import { useToast } from "../context/ToastContext"
 
@@ -17,9 +17,10 @@ export default function LockScreen({ hasVault, onUnlocked }) {
     if (password.length < 6) { showToast("Minimum 6 characters", "error"); return }
     if (password !== confirm)  { showToast("Passwords do not match", "error"); return }
     setLoading(true)
-    const hash = await hashString(password)
-    await chromeSet({ masterPasswordHash: hash })
-    onUnlocked(password)
+    const salt = generateSalt()
+    const hash = await deriveVerificationHash(password, salt)
+    await chromeSet({ masterPasswordHash: hash, vaultSalt: salt })
+    onUnlocked(password, salt)
     setLoading(false)
   }
 
@@ -27,11 +28,17 @@ export default function LockScreen({ hasVault, onUnlocked }) {
     e.preventDefault()
     if (!password) return
     setLoading(true)
-    const result = await chromeGet(["masterPasswordHash"])
-    const hash   = await hashString(password)
+    const result = await chromeGet(["masterPasswordHash", "vaultSalt"])
+    if (!result.vaultSalt) {
+      setError("Vault format is outdated. Please clear the extension data and create a new vault.")
+      setPassword("")
+      setLoading(false)
+      return
+    }
+    const hash   = await deriveVerificationHash(password, result.vaultSalt)
     if (hash === result.masterPasswordHash) {
       setError("")
-      onUnlocked(password)
+      onUnlocked(password, result.vaultSalt)
     } else {
       setError("Incorrect password. Try again.")
     }

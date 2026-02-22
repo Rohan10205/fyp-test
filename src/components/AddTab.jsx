@@ -3,7 +3,7 @@ import { encryptPassword, getPasswordStrength, STRENGTH_META } from "../utils/cr
 import { chromeGet, chromeSet } from "../utils/storage"
 import { useToast } from "../context/ToastContext"
 
-export default function AddTab({ masterPassword, prefillPassword, onSaved, onClearPrefill }) {
+export default function AddTab({ masterPassword, vaultSalt, prefillPassword, onSaved, onClearPrefill }) {
   const showToast = useToast()
   const [website,  setWebsite]  = useState("")
   const [username, setUsername] = useState("")
@@ -33,7 +33,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
     try {
       const result = await chromeGet(["passwords"])
       const list   = result.passwords || []
-      const enc    = await encryptPassword(password, masterPassword)
+      const enc    = await encryptPassword(password, masterPassword, vaultSalt)
       list.push({
         id: Date.now(),
         website:   website.trim(),
