@@ -6,7 +6,8 @@ import { useToast } from "../context/ToastContext"
 const MAX_ATTEMPTS = 5
 
 function generateRecoveryCode() {
-  // Unambiguous characters (no 0/O, 1/I/l)
+  // 32 unambiguous characters (no 0/O, 1/I/l).
+  // Uint8Array values are 0-255 (256 total); 256 / 32 = 8 exactly, so no modulo bias.
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
   const array = new Uint8Array(10)
   crypto.getRandomValues(array)
@@ -170,7 +171,7 @@ export default function LockScreen({ hasVault, onUnlocked }) {
       <>
         <div className="lock-logo">
           <div className="lock-logo__ring" />
-          <span className="lock-logo__icon">🔐</span>
+          <span className="lock-logo__icon" aria-hidden="true">🔐</span>
         </div>
         <h1 className="lock-title">Vaultword</h1>
       </>
@@ -197,7 +198,7 @@ export default function LockScreen({ hasVault, onUnlocked }) {
             </button>
           </div>
 
-          <p className="recovery-warning">
+          <p className="recovery-warning" role="alert">
             ⚠️ This code is shown <strong>only once</strong>. Store it somewhere safe — you will need it to reset your master password if you forget it.
           </p>
 
@@ -231,7 +232,7 @@ export default function LockScreen({ hasVault, onUnlocked }) {
           <Logo />
           <p className="lock-subtitle">Reset master password</p>
 
-          <p className="recovery-warning">
+          <p className="recovery-warning" role="alert">
             ⚠️ Resetting your master password will permanently <strong>delete all saved passwords</strong>, as they cannot be decrypted without the old password.
           </p>
 
