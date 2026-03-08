@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { hashString } from "../utils/crypto"
 import { chromeGet, chromeSet } from "../utils/storage"
 import { useToast } from "../context/ToastContext"
+import iconUrl from "../../icon.jpg"
 
 const MAX_ATTEMPTS = 5
 
@@ -171,7 +172,7 @@ export default function LockScreen({ hasVault, onUnlocked }) {
       <>
         <div className="lock-logo">
           <div className="lock-logo__ring" />
-          <span className="lock-logo__icon" aria-hidden="true">🔐</span>
+          <img src={iconUrl} alt="Vaultword logo" className="lock-logo__img" />
         </div>
         <h1 className="lock-title">Vaultword</h1>
       </>

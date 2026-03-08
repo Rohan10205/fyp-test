@@ -2,6 +2,7 @@ import { useState } from "react"
 import PasswordsTab from "./PasswordsTab"
 import AddTab from "./AddTab"
 import GeneratorTab from "./GeneratorTab"
+import iconUrl from "../../icon.jpg"
 
 const TABS = [
   { id: "passwords", label: "Passwords", icon: "" },
@@ -23,7 +24,7 @@ export default function MainApp({ masterPassword, onLock }) {
       {/* Header */}
       <header className="app-header">
         <div className="app-header__brand">
-          <span className="app-header__icon"></span>
+          <img src={iconUrl} alt="Vaultword logo" className="app-header__logo" />
           <span className="app-header__name">Vaultword</span>
         </div>
         <button className="btn btn--ghost btn--icon" title="Lock vault" onClick={onLock}>

@@ -93,6 +93,13 @@ body {
 
 .lock-logo__icon { font-size: 34px; }
 
+.lock-logo__img {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .lock-title {
   color: #fff;
   font-size: 28px;
@@ -267,6 +274,14 @@ button { cursor: pointer; font-family: var(--font); }
 }
 
 .app-header__icon { font-size: 20px; }
+
+.app-header__logo {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
 
 .app-header__name {
   color: #fff;
