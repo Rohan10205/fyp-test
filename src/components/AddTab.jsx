@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
 import { encryptPassword, getPasswordStrength, STRENGTH_META } from "../utils/crypto"
-import { chromeGet, chromeSet } from "../utils/storage"
+import { apiCreateCredential } from "../utils/api"
 import { useToast } from "../context/ToastContext"
 
 export default function AddTab({ masterPassword, prefillPassword, onSaved, onClearPrefill }) {
   const showToast = useToast()
-  const [website,  setWebsite]  = useState("")
+  const [site,     setSite]     = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPw,   setShowPw]   = useState(false)
@@ -25,25 +25,20 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!website || !username || !password) {
+    if (!site || !username || !password) {
       showToast("Please fill all fields", "error")
       return
     }
     setSaving(true)
     try {
-      const result = await chromeGet(["passwords"])
-      const list   = result.passwords || []
-      const enc    = await encryptPassword(password, masterPassword)
-      list.push({
-        id: Date.now(),
-        website:   website.trim(),
-        username:  username.trim(),
-        password:  enc,
-        createdAt: new Date().toLocaleDateString(),
+      const enc = await encryptPassword(password, masterPassword)
+      await apiCreateCredential({
+        site:               site.trim(),
+        username:           username.trim(),
+        encrypted_password: enc,
       })
-      await chromeSet({ passwords: list })
       showToast("Password saved!", "success")
-      setWebsite(""); setUsername(""); setPassword(""); setShowPw(false)
+      setSite(""); setUsername(""); setPassword(""); setShowPw(false)
       onSaved()
     } catch {
       showToast("Failed to save password", "error")
@@ -62,8 +57,8 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
               className="field__input"
               type="text"
               placeholder="e.g. facebook.com"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
+              value={site}
+              onChange={(e) => setSite(e.target.value)}
             />
           </div>
 

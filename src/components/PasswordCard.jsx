@@ -19,7 +19,7 @@ export default function PasswordCard({ item, onDelete }) {
     }).catch(() => showToast("Failed to copy", "error"))
   }
 
-  const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.website}&sz=32`
+  const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.site}&sz=32`
 
   return (
     <div className="card">
@@ -31,7 +31,7 @@ export default function PasswordCard({ item, onDelete }) {
           alt=""
           onError={(e) => { e.currentTarget.style.display = "none" }}
         />
-        <span className="card__site">{item.website}</span>
+        <span className="card__site">{item.site}</span>
         <button
           className="btn btn--danger-ghost btn--icon"
           title="Delete"
@@ -70,9 +70,12 @@ export default function PasswordCard({ item, onDelete }) {
       </div>
 
       {/* Date */}
-      {item.createdAt && (
-        <span className="card__date">Added {item.createdAt}</span>
-      )}
+      {item.created_at && (() => {
+        const d = new Date(item.created_at)
+        return isNaN(d.getTime()) ? null : (
+          <span className="card__date">Added {d.toLocaleDateString()}</span>
+        )
+      })()}
     </div>
   )
 }

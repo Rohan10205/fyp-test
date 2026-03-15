@@ -1,40 +1,56 @@
 import { useState, useEffect } from "react"
 import { ToastProvider } from "./context/ToastContext"
+import AuthScreen from "./components/AuthScreen"
 import LockScreen from "./components/LockScreen"
 import MainApp from "./components/MainApp"
-import { chromeGet } from "./utils/storage"
+import { chromeGet, chromeSet } from "./utils/storage"
 
 export default function App() {
-  const [masterPassword, setMasterPassword] = useState(null) // null = locked
-  const [hasVault, setHasVault]             = useState(null) // null = loading
+  // null = still loading from storage
+  const [authToken,      setAuthToken]      = useState(null)
+  const [masterPassword, setMasterPassword] = useState(null)
+  const [hasVault,       setHasVault]       = useState(false)
 
   useEffect(() => {
-    chromeGet(["masterPasswordHash"]).then((r) =>
+    chromeGet(["authToken", "masterPasswordHash"]).then((r) => {
+      setAuthToken(r.authToken || "")
       setHasVault(!!r.masterPasswordHash)
-    )
+    })
   }, [])
 
-  function handleUnlock(password) {
-    setMasterPassword(password)
+  async function handleAuthenticated() {
+    const r = await chromeGet(["authToken", "masterPasswordHash"])
+    setAuthToken(r.authToken || "")
+    setHasVault(!!r.masterPasswordHash)
   }
 
-  function handleLock() {
+  async function handleLogout() {
+    await chromeSet({ authToken: null })
+    setAuthToken("")
     setMasterPassword(null)
   }
 
-  if (hasVault === null) return null // loading
+  // Still loading initial state
+  if (authToken === null) return null
 
   return (
     <ToastProvider>
-      {masterPassword ? (
-        <MainApp masterPassword={masterPassword} onLock={handleLock} />
+      {!authToken ? (
+        <AuthScreen onAuthenticated={handleAuthenticated} />
+      ) : masterPassword ? (
+        <MainApp
+          masterPassword={masterPassword}
+          onLock={() => setMasterPassword(null)}
+          onLogout={handleLogout}
+        />
       ) : (
         <LockScreen
           hasVault={hasVault}
           onUnlocked={(pwd) => {
             setHasVault(true)
-            handleUnlock(pwd)
+            setMasterPassword(pwd)
           }}
+          onLogout={handleLogout}
         />
       )}
     </ToastProvider>

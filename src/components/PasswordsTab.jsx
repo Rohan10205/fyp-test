@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react"
-import { chromeGet, chromeSet } from "../utils/storage"
+import { apiGetCredentials, apiDeleteCredential } from "../utils/api"
 import { decryptPassword } from "../utils/crypto"
 import { useToast } from "../context/ToastContext"
 import PasswordCard from "./PasswordCard"
 
 export default function PasswordsTab({ masterPassword }) {
-  const showToast    = useToast()
-  const [items, setItems]       = useState([])
-  const [search, setSearch]     = useState("")
-  const [loading, setLoading]   = useState(true)
+  const showToast  = useToast()
+  const [items, setItems]     = useState([])
+  const [search, setSearch]   = useState("")
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadAll()
@@ -16,34 +16,39 @@ export default function PasswordsTab({ masterPassword }) {
 
   async function loadAll() {
     setLoading(true)
-    const result   = await chromeGet(["passwords"])
-    const raw      = result.passwords || []
-    const decrypted = await Promise.all(
-      raw.map(async (p) => {
-        try {
-          return { ...p, plain: await decryptPassword(p.password, masterPassword) }
-        } catch {
-          return { ...p, plain: null }
-        }
-      })
-    )
-    setItems(decrypted)
+    try {
+      const raw       = await apiGetCredentials()
+      const decrypted = await Promise.all(
+        raw.map(async (p) => {
+          try {
+            return { ...p, plain: await decryptPassword(p.encrypted_password, masterPassword) }
+          } catch {
+            return { ...p, plain: null }
+          }
+        })
+      )
+      setItems(decrypted)
+    } catch {
+      showToast("Failed to load passwords", "error")
+    }
     setLoading(false)
   }
 
   async function handleDelete(id) {
     if (!confirm("Delete this password? This cannot be undone.")) return
-    const result = await chromeGet(["passwords"])
-    const updated = (result.passwords || []).filter((p) => p.id !== id)
-    await chromeSet({ passwords: updated })
-    setItems((prev) => prev.filter((p) => p.id !== id))
-    showToast("Password deleted", "success")
+    try {
+      await apiDeleteCredential(id)
+      setItems((prev) => prev.filter((p) => p.id !== id))
+      showToast("Password deleted", "success")
+    } catch {
+      showToast("Failed to delete password", "error")
+    }
   }
 
   const filtered = search
     ? items.filter(
         (p) =>
-          p.website.toLowerCase().includes(search.toLowerCase()) ||
+          p.site.toLowerCase().includes(search.toLowerCase()) ||
           p.username.toLowerCase().includes(search.toLowerCase())
       )
     : items
