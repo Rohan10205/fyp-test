@@ -80,7 +80,7 @@ export default function PasswordsTab({ masterPassword }) {
   function isWebsiteMatch(website) {
     const savedHost = normalizeWebsite(website)
     if (!savedHost || !activeTab.hostname) return false
-    return activeTab.hostname === savedHost || activeTab.hostname.endsWith(`.${savedHost}`)
+    return activeTab.hostname === savedHost
   }
 
   async function handleAutofill(item) {
@@ -115,15 +115,29 @@ export default function PasswordsTab({ masterPassword }) {
           ].join(", "),
         }],
         func: (fillConfig) => {
+          const usernameTypes = new Set(["text", "email", "tel", "url", "search", ""])
+
           const isEditableField = (el) =>
             el &&
             !el.disabled &&
             !el.readOnly &&
             !["hidden", "submit", "button", "checkbox", "radio", "file"].includes(el.type)
 
+          const isUsernameField = (el) => {
+            const type = (el.type || "").toLowerCase()
+            return usernameTypes.has(type)
+          }
+
           const isVisible = (el) => {
             const style = window.getComputedStyle(el)
-            return style.display !== "none" && style.visibility !== "hidden" && el.offsetParent !== null
+            const rect = el.getBoundingClientRect()
+            return (
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              style.opacity !== "0" &&
+              rect.width > 0 &&
+              rect.height > 0
+            )
           }
 
           const setFieldValue = (el, value) => {
@@ -151,14 +165,14 @@ export default function PasswordsTab({ masterPassword }) {
                 .filter((el) => isEditableField(el) && isVisible(el))
               for (const input of formInputs) {
                 if (input === passwordField) break
-                if (input.type !== "password") usernameField = input
+                if (isUsernameField(input)) usernameField = input
               }
             }
 
             if (!usernameField) {
               usernameField = Array.from(
                 document.querySelectorAll(fillConfig.usernameFallbackSelector)
-              ).find((el) => isEditableField(el) && isVisible(el) && el !== passwordField)
+              ).find((el) => isEditableField(el) && isVisible(el) && isUsernameField(el) && el !== passwordField)
             }
 
             if (usernameField) setFieldValue(usernameField, fillConfig.username || "")

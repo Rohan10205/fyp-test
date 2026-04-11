@@ -53,6 +53,7 @@ export default function PasswordCard({ item, onDelete, onAutofill, canAutofill }
           onClick={() => onAutofill(item)}
           disabled={!canAutofill || !item.plain}
           title={canAutofill ? "Autofill and sign in on the current tab" : "Open matching website tab to enable"}
+          aria-label={canAutofill ? "Autofill and sign in on the current tab" : "Autofill unavailable for this tab"}
         >
           Autofill
         </button>
