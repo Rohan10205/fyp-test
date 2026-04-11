@@ -224,10 +224,16 @@ npm run dev
 Run unit tests from the project root:
 
 ```bash
-cd /home/runner/work/fyp-test/fyp-test
 npm test
 ```
 
-`Test 1` (`hashString("Test123!")`) is covered in:
+Current unit coverage includes project code in `src/utils/crypto.js`, including:
 
-`/home/runner/work/fyp-test/fyp-test/tests/crypto.test.js`
+- `hashString("Test123!")`
+- `hashString("")`
+- `getPasswordStrength(...)`
+- `generatePassword(...)`
+
+Tests are located in:
+
+`tests/crypto.test.js`
