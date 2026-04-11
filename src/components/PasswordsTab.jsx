@@ -93,9 +93,6 @@ export default function PasswordsTab({ masterPassword }) {
 
   const showingSiteMatches = !search && !showAllSites && siteMatched.length > 0
   const displayItems = showingSiteMatches ? siteMatched : searchFiltered
-  const autoFillTargetId = showingSiteMatches
-    ? siteMatched.find((p) => p.plain)?.id ?? null
-    : null
 
   return (
     <div className="passwords-tab">
@@ -154,12 +151,7 @@ export default function PasswordsTab({ masterPassword }) {
           </div>
         ) : (
           displayItems.map((item) => (
-            <PasswordCard
-              key={item.id}
-              item={item}
-              onDelete={handleDelete}
-              autoFill={item.id === autoFillTargetId}
-            />
+            <PasswordCard key={item.id} item={item} onDelete={handleDelete} />
           ))
         )}
       </div>

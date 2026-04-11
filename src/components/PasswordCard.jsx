@@ -1,8 +1,7 @@
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useRef } from "react"
 import { useToast } from "../context/ToastContext"
 
 const CLEAR_DELAY = 30_000
-const USERNAME_CANDIDATE_LOOKBACK = 5
 
 // Runs inside the target page context (no closure variables allowed)
 function fillLoginForm(username, password) {
@@ -11,7 +10,7 @@ function fillLoginForm(username, password) {
     const r = el.getBoundingClientRect()
     if (r.width === 0 || r.height === 0) return false
     const s = window.getComputedStyle(el)
-    return s.display !== "none" && s.visibility !== "hidden" && Number.parseFloat(s.opacity) > 0
+    return s.display !== "none" && s.visibility !== "hidden" && s.opacity !== "0"
   }
 
   const pwFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(isVisible)
@@ -26,10 +25,8 @@ function fillLoginForm(username, password) {
   ).filter(isVisible)
 
   let userField = null
-  // Prefer inputs that are part of the same form or recent visible inputs nearby
-  const candidates = ownerForm
-    ? inputs
-    : inputs.slice(Math.max(0, inputs.length - USERNAME_CANDIDATE_LOOKBACK))
+  // Prefer inputs that are part of the same form or within 3 DOM siblings above
+  const candidates = ownerForm ? inputs : inputs.slice(Math.max(0, inputs.length - 5))
   for (let i = candidates.length - 1; i >= 0; i--) {
     const inp = candidates[i]
     const t = (inp.type || "").toLowerCase()
@@ -56,10 +53,9 @@ function fillLoginForm(username, password) {
   return { success: true, filledUsername: !!userField }
 }
 
-export default function PasswordCard({ item, onDelete, autoFill = false }) {
+export default function PasswordCard({ item, onDelete }) {
   const showToast  = useToast()
   const clearTimer = useRef(null)
-  const autoFilledRef = useRef(false)
   const [showPass, setShowPass] = useState(false)
   const [filling,  setFilling]  = useState(false)
 
@@ -74,7 +70,7 @@ export default function PasswordCard({ item, onDelete, autoFill = false }) {
     }).catch(() => showToast("Failed to copy", "error"))
   }
 
-  const handleAutofill = useCallback(async ({ automatic = false } = {}) => {
+  async function handleAutofill() {
     if (!item.plain) return
     setFilling(true)
     try {
@@ -82,10 +78,7 @@ export default function PasswordCard({ item, onDelete, autoFill = false }) {
         window.chrome.tabs.query({ active: true, currentWindow: true }, resolve)
       )
       const tab = tabs?.[0]
-      if (!tab?.id) {
-        if (!automatic) showToast("No active tab found", "error")
-        return
-      }
+      if (!tab?.id) { showToast("No active tab found", "error"); return }
 
       const results = await window.chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -95,29 +88,19 @@ export default function PasswordCard({ item, onDelete, autoFill = false }) {
 
       const result = results?.[0]?.result
       if (result?.success) {
-        if (automatic) {
-          showToast(result.filledUsername ? "Auto-filled login form" : "Auto-filled password field", "success")
-        } else {
-          showToast(
-            result.filledUsername ? "Username & password filled!" : "Password filled!",
-            "success"
-          )
-        }
+        showToast(
+          result.filledUsername ? "Username & password filled!" : "Password filled!",
+          "success"
+        )
       } else {
-        if (!automatic) showToast(result?.error || "No login form found on this page", "error")
+        showToast(result?.error || "No login form found on this page", "error")
       }
     } catch (err) {
-      if (!automatic) showToast("Autofill failed: " + (err.message || "Unknown error"), "error")
+      showToast("Autofill failed: " + (err.message || "Unknown error"), "error")
     } finally {
       setFilling(false)
     }
-  }, [item.plain, item.username, showToast])
-
-  useEffect(() => {
-    if (!autoFill || !item.plain || autoFilledRef.current) return
-    autoFilledRef.current = true
-    handleAutofill({ automatic: true })
-  }, [autoFill, item.plain, item.username, handleAutofill])
+  }
 
   const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.site}&sz=32`
 
@@ -175,7 +158,7 @@ export default function PasswordCard({ item, onDelete, autoFill = false }) {
           <button
             className="btn btn--primary btn--full"
             style={{ marginTop: 4 }}
-            onClick={() => handleAutofill()}
+            onClick={handleAutofill}
             disabled={filling}
             title="Fill username and password into the current page's login form"
           >
