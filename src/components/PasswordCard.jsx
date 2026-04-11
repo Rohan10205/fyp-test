@@ -26,7 +26,7 @@ function fillLoginForm(username, password) {
   ).filter(isVisible)
 
   let userField = null
-  // Prefer inputs that are part of the same form or within 3 DOM siblings above
+  // Prefer inputs that are part of the same form or recent visible inputs nearby
   const candidates = ownerForm
     ? inputs
     : inputs.slice(Math.max(0, inputs.length - USERNAME_CANDIDATE_LOOKBACK))
@@ -117,7 +117,7 @@ export default function PasswordCard({ item, onDelete, autoFill = false }) {
     if (!autoFill || !item.plain || autoFilledRef.current) return
     autoFilledRef.current = true
     handleAutofill({ automatic: true })
-  }, [autoFill, item.plain, handleAutofill])
+  }, [autoFill, item.plain, item.username, handleAutofill])
 
   const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.site}&sz=32`
 
