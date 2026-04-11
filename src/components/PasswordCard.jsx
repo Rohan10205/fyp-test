@@ -1,4 +1,4 @@
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useToast } from "../context/ToastContext"
 
 const CLEAR_DELAY = 30_000
@@ -53,9 +53,10 @@ function fillLoginForm(username, password) {
   return { success: true, filledUsername: !!userField }
 }
 
-export default function PasswordCard({ item, onDelete }) {
+export default function PasswordCard({ item, onDelete, autoFill = false }) {
   const showToast  = useToast()
   const clearTimer = useRef(null)
+  const autoFilledRef = useRef(false)
   const [showPass, setShowPass] = useState(false)
   const [filling,  setFilling]  = useState(false)
 
@@ -70,7 +71,7 @@ export default function PasswordCard({ item, onDelete }) {
     }).catch(() => showToast("Failed to copy", "error"))
   }
 
-  async function handleAutofill() {
+  async function handleAutofill({ automatic = false } = {}) {
     if (!item.plain) return
     setFilling(true)
     try {
@@ -78,7 +79,10 @@ export default function PasswordCard({ item, onDelete }) {
         window.chrome.tabs.query({ active: true, currentWindow: true }, resolve)
       )
       const tab = tabs?.[0]
-      if (!tab?.id) { showToast("No active tab found", "error"); return }
+      if (!tab?.id) {
+        if (!automatic) showToast("No active tab found", "error")
+        return
+      }
 
       const results = await window.chrome.scripting.executeScript({
         target: { tabId: tab.id },
@@ -88,19 +92,29 @@ export default function PasswordCard({ item, onDelete }) {
 
       const result = results?.[0]?.result
       if (result?.success) {
-        showToast(
-          result.filledUsername ? "Username & password filled!" : "Password filled!",
-          "success"
-        )
+        if (automatic) {
+          showToast(result.filledUsername ? "Auto-filled login form" : "Auto-filled password field", "success")
+        } else {
+          showToast(
+            result.filledUsername ? "Username & password filled!" : "Password filled!",
+            "success"
+          )
+        }
       } else {
-        showToast(result?.error || "No login form found on this page", "error")
+        if (!automatic) showToast(result?.error || "No login form found on this page", "error")
       }
     } catch (err) {
-      showToast("Autofill failed: " + (err.message || "Unknown error"), "error")
+      if (!automatic) showToast("Autofill failed: " + (err.message || "Unknown error"), "error")
     } finally {
       setFilling(false)
     }
   }
+
+  useEffect(() => {
+    if (!autoFill || !item.plain || autoFilledRef.current) return
+    autoFilledRef.current = true
+    handleAutofill({ automatic: true })
+  }, [autoFill, item.plain])
 
   const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.site}&sz=32`
 
@@ -158,7 +172,7 @@ export default function PasswordCard({ item, onDelete }) {
           <button
             className="btn btn--primary btn--full"
             style={{ marginTop: 4 }}
-            onClick={handleAutofill}
+            onClick={() => handleAutofill()}
             disabled={filling}
             title="Fill username and password into the current page's login form"
           >
