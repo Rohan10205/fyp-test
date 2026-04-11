@@ -14,7 +14,7 @@ function fillLoginForm(username, password) {
   }
 
   const pwFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(isVisible)
-  if (!pwFields.length) return { success: false, error: "No password field found on this page" }
+  if (!pwFields.length) return { success: false, error: "No visible password field found on this page" }
 
   const pwField = pwFields[0]
   const ownerForm = pwField.form

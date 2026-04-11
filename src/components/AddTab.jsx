@@ -67,9 +67,8 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
       showToast("Please fill all fields", "error")
       return
     }
-    const signature = `${site.trim()}|${username.trim()}|${password}`
-    const ok = await saveCredential(false)
-    if (ok) lastAutoSavedSignature.current = signature
+    lastAutoSavedSignature.current = `${site.trim()}|${username.trim()}|${password}`
+    await saveCredential(false)
   }
 
   useEffect(() => {
