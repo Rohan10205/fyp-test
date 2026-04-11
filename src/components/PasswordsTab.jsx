@@ -4,16 +4,6 @@ import { decryptPassword } from "../utils/crypto"
 import { useToast } from "../context/ToastContext"
 import PasswordCard from "./PasswordCard"
 
-const USERNAME_FALLBACK_SELECTOR = [
-  'input[autocomplete="username"]',
-  'input[type="email"]',
-  'input[name*="user" i]',
-  'input[name*="email" i]',
-  'input[id*="user" i]',
-  'input[id*="email" i]',
-  'input[type="text"]',
-].join(", ")
-
 export default function PasswordsTab({ masterPassword }) {
   const showToast    = useToast()
   const [items, setItems]       = useState([])
@@ -110,7 +100,20 @@ export default function PasswordsTab({ masterPassword }) {
     try {
       const [execution] = await window.chrome.scripting.executeScript({
         target: { tabId: activeTab.id },
-        args: [{ username: item.username, password: item.plain, autoSubmit: true }],
+        args: [{
+          username: item.username,
+          password: item.plain,
+          autoSubmit: true,
+          usernameFallbackSelector: [
+            'input[autocomplete="username"]',
+            'input[type="email"]',
+            'input[name*="user" i]',
+            'input[name*="email" i]',
+            'input[id*="user" i]',
+            'input[id*="email" i]',
+            'input[type="text"]',
+          ].join(", "),
+        }],
         func: (fillConfig) => {
           const isEditableField = (el) =>
             el &&
@@ -153,7 +156,7 @@ export default function PasswordsTab({ masterPassword }) {
 
             if (!usernameField) {
               usernameField = Array.from(
-                document.querySelectorAll(USERNAME_FALLBACK_SELECTOR)
+                document.querySelectorAll(fillConfig.usernameFallbackSelector)
               ).find((el) => isEditableField(el) && isVisible(el) && el !== passwordField)
             }
 
@@ -163,7 +166,7 @@ export default function PasswordsTab({ masterPassword }) {
             if (!fillConfig.autoSubmit) return { status: "filled" }
 
             if (form) {
-              if (typeof form.requestSubmit === "function") form.requestSubmit?.()
+              if (typeof form.requestSubmit === "function") form.requestSubmit()
               else {
                 const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]')
                 if (submitBtn) submitBtn.click()
