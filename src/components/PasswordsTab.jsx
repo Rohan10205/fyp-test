@@ -1,8 +1,18 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { chromeGet, chromeSet } from "../utils/storage"
 import { decryptPassword } from "../utils/crypto"
 import { useToast } from "../context/ToastContext"
 import PasswordCard from "./PasswordCard"
+
+const USERNAME_FALLBACK_SELECTOR = [
+  'input[autocomplete="username"]',
+  'input[type="email"]',
+  'input[name*="user" i]',
+  'input[name*="email" i]',
+  'input[id*="user" i]',
+  'input[id*="email" i]',
+  'input[type="text"]',
+].join(", ")
 
 export default function PasswordsTab({ masterPassword }) {
   const showToast    = useToast()
@@ -11,16 +21,34 @@ export default function PasswordsTab({ masterPassword }) {
   const [loading, setLoading]   = useState(true)
   const [activeTab, setActiveTab] = useState({ id: null, url: "", hostname: "" })
 
+  const loadActiveTab = useCallback(async () => {
+    if (!window.chrome?.tabs?.query) return
+    try {
+      const tabs = await window.chrome.tabs.query({ active: true, currentWindow: true })
+      const tab = tabs?.[0]
+      const url = tab?.url || ""
+      let hostname = ""
+      try {
+        hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, "")
+      } catch {
+        hostname = ""
+      }
+      setActiveTab({ id: tab?.id ?? null, url, hostname })
+    } catch {
+      setActiveTab({ id: null, url: "", hostname: "" })
+    }
+  }, [])
+
   useEffect(() => {
     loadAll()
     loadActiveTab()
-  }, [])
+  }, [loadActiveTab])
 
   useEffect(() => {
     const handleFocus = () => loadActiveTab()
     window.addEventListener("focus", handleFocus)
     return () => window.removeEventListener("focus", handleFocus)
-  }, [])
+  }, [loadActiveTab])
 
   async function loadAll() {
     setLoading(true)
@@ -46,24 +74,6 @@ export default function PasswordsTab({ masterPassword }) {
     await chromeSet({ passwords: updated })
     setItems((prev) => prev.filter((p) => p.id !== id))
     showToast("Password deleted", "success")
-  }
-
-  async function loadActiveTab() {
-    if (!window.chrome?.tabs?.query) return
-    try {
-      const tabs = await window.chrome.tabs.query({ active: true, currentWindow: true })
-      const tab = tabs?.[0]
-      const url = tab?.url || ""
-      let hostname = ""
-      try {
-        hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, "")
-      } catch {
-        hostname = ""
-      }
-      setActiveTab({ id: tab?.id ?? null, url, hostname })
-    } catch {
-      setActiveTab({ id: null, url: "", hostname: "" })
-    }
   }
 
   function normalizeWebsite(value) {
@@ -101,7 +111,7 @@ export default function PasswordsTab({ masterPassword }) {
       const [execution] = await window.chrome.scripting.executeScript({
         target: { tabId: activeTab.id },
         args: [{ username: item.username, password: item.plain, autoSubmit: true }],
-        func: (credentials) => {
+        func: (fillConfig) => {
           const isEditableField = (el) =>
             el &&
             !el.disabled &&
@@ -143,19 +153,17 @@ export default function PasswordsTab({ masterPassword }) {
 
             if (!usernameField) {
               usernameField = Array.from(
-                document.querySelectorAll(
-                  'input[autocomplete="username"], input[type="email"], input[name*="user" i], input[name*="email" i], input[id*="user" i], input[id*="email" i], input[type="text"]'
-                )
+                document.querySelectorAll(USERNAME_FALLBACK_SELECTOR)
               ).find((el) => isEditableField(el) && isVisible(el) && el !== passwordField)
             }
 
-            if (usernameField) setFieldValue(usernameField, credentials.username || "")
-            setFieldValue(passwordField, credentials.password || "")
+            if (usernameField) setFieldValue(usernameField, fillConfig.username || "")
+            setFieldValue(passwordField, fillConfig.password || "")
 
-            if (!credentials.autoSubmit) return { status: "filled" }
+            if (!fillConfig.autoSubmit) return { status: "filled" }
 
             if (form) {
-              if (typeof form.requestSubmit === "function") form.requestSubmit()
+              if (typeof form.requestSubmit === "function") form.requestSubmit?.()
               else {
                 const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]')
                 if (submitBtn) submitBtn.click()
