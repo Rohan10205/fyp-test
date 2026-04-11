@@ -4,6 +4,10 @@ import { decryptPassword } from "../utils/crypto"
 import { useToast } from "../context/ToastContext"
 import PasswordCard from "./PasswordCard"
 
+function normalizeHost(hostname) {
+  return (hostname || "").toLowerCase().replace(/^www\./, "")
+}
+
 export default function PasswordsTab({ masterPassword }) {
   const showToast    = useToast()
   const [items, setItems]       = useState([])
@@ -19,7 +23,7 @@ export default function PasswordsTab({ masterPassword }) {
       const url = tab?.url || ""
       let hostname = ""
       try {
-        hostname = new URL(url).hostname.toLowerCase().replace(/^www\./, "")
+        hostname = normalizeHost(new URL(url).hostname)
       } catch {
         hostname = ""
       }
@@ -71,9 +75,9 @@ export default function PasswordsTab({ masterPassword }) {
     if (!raw) return ""
     const withScheme = /^https?:\/\//.test(raw) ? raw : `https://${raw}`
     try {
-      return new URL(withScheme).hostname.toLowerCase().replace(/^www\./, "")
+      return normalizeHost(new URL(withScheme).hostname)
     } catch {
-      return raw.replace(/^www\./, "").split("/")[0]
+      return normalizeHost(raw.split("/")[0])
     }
   }
 
@@ -96,6 +100,7 @@ export default function PasswordsTab({ masterPassword }) {
       showToast("Autofill works on website pages only", "error")
       return
     }
+    if (!confirm("Autofill and automatically submit this page's login form?")) return
 
     try {
       const [execution] = await window.chrome.scripting.executeScript({
@@ -208,9 +213,9 @@ export default function PasswordsTab({ masterPassword }) {
       else if (status === "filled") showToast("Autofilled successfully", "success")
       else if (status === "filled-no-submit") showToast("Autofilled (submit button not found)", "success")
       else if (status === "no-password-field") showToast("No login form found on this page", "error")
-      else showToast("Autofill failed", "error")
+      else showToast("Autofill failed. Ensure a visible login form exists.", "error")
     } catch {
-      showToast("Autofill failed", "error")
+      showToast("Autofill failed. Refresh the tab and try again.", "error")
     }
   }
 
