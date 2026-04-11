@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { useToast } from "../context/ToastContext"
 
 const CLEAR_DELAY = 30_000
+const USERNAME_CANDIDATE_LOOKBACK = 5
 
 // Runs inside the target page context (no closure variables allowed)
 function fillLoginForm(username, password) {
@@ -10,7 +11,7 @@ function fillLoginForm(username, password) {
     const r = el.getBoundingClientRect()
     if (r.width === 0 || r.height === 0) return false
     const s = window.getComputedStyle(el)
-    return s.display !== "none" && s.visibility !== "hidden" && Number.parseFloat(s.opacity) !== 0
+    return s.display !== "none" && s.visibility !== "hidden" && Number.parseFloat(s.opacity) > 0
   }
 
   const pwFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(isVisible)
@@ -26,7 +27,9 @@ function fillLoginForm(username, password) {
 
   let userField = null
   // Prefer inputs that are part of the same form or within 3 DOM siblings above
-  const candidates = ownerForm ? inputs : inputs.slice(Math.max(0, inputs.length - 5))
+  const candidates = ownerForm
+    ? inputs
+    : inputs.slice(Math.max(0, inputs.length - USERNAME_CANDIDATE_LOOKBACK))
   for (let i = candidates.length - 1; i >= 0; i--) {
     const inp = candidates[i]
     const t = (inp.type || "").toLowerCase()
