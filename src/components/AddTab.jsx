@@ -12,6 +12,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
   const [saving,   setSaving]   = useState(false)
   const autoSaveTimer           = useRef(null)
   const savingRef               = useRef(false)
+  const isMountedRef            = useRef(true)
   const lastAutoSavedSignature  = useRef("")
 
   // Accept password from generator
@@ -23,13 +24,17 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
     }
   }, [prefillPassword])
 
+  useEffect(() => () => {
+    isMountedRef.current = false
+  }, [])
+
   const strength = password ? getPasswordStrength(password) : null
   const meta     = strength !== null ? STRENGTH_META[strength] : null
 
   const saveCredential = useCallback(async (autoSave = false) => {
     if (!site || !username || !password || savingRef.current) return false
     savingRef.current = true
-    setSaving(true)
+    if (isMountedRef.current) setSaving(true)
     try {
       const enc = await encryptPassword(password, masterPassword)
       await apiCreateCredential({
@@ -46,7 +51,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
       return false
     } finally {
       savingRef.current = false
-      setSaving(false)
+      if (isMountedRef.current) setSaving(false)
     }
   }, [masterPassword, onSaved, password, showToast, site, username])
 
