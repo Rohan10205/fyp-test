@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { encryptPassword, getPasswordStrength, STRENGTH_META } from "../utils/crypto"
 import { apiCreateCredential } from "../utils/api"
 import { useToast } from "../context/ToastContext"
@@ -25,7 +25,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
   const strength = password ? getPasswordStrength(password) : null
   const meta     = strength !== null ? STRENGTH_META[strength] : null
 
-  async function saveCredential(autoSave = false) {
+  const saveCredential = useCallback(async (autoSave = false) => {
     if (!site || !username || !password || saving) return false
     setSaving(true)
     try {
@@ -45,7 +45,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
     } finally {
       setSaving(false)
     }
-  }
+  }, [masterPassword, onSaved, password, saving, showToast, site, username])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -65,14 +65,13 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
     const signature = `${site.trim()}|${username.trim()}|${password}`
     if (signature === lastAutoSavedSignature.current) return
 
-    autoSaveTimer.current = setTimeout(async () => {
+    autoSaveTimer.current = setTimeout(() => {
       lastAutoSavedSignature.current = signature
-      const ok = await saveCredential(true)
-      if (!ok) lastAutoSavedSignature.current = ""
+      saveCredential(true)
     }, 1200)
 
     return () => clearTimeout(autoSaveTimer.current)
-  }, [site, username, password, saving])
+  }, [password, saving, saveCredential, site, username])
 
   return (
     <div className="add-tab">
