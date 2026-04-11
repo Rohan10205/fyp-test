@@ -43,7 +43,12 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
         encrypted_password: enc,
       })
       showToast(autoSave ? "Password auto-saved!" : "Password saved!", "success")
-      setSite(""); setUsername(""); setPassword(""); setShowPw(false)
+      if (isMountedRef.current) {
+        setSite("")
+        setUsername("")
+        setPassword("")
+        setShowPw(false)
+      }
       onSaved()
       return true
     } catch {
@@ -62,8 +67,9 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
       showToast("Please fill all fields", "error")
       return
     }
-    lastAutoSavedSignature.current = `${site.trim()}|${username.trim()}|${password}`
-    await saveCredential(false)
+    const signature = `${site.trim()}|${username.trim()}|${password}`
+    const ok = await saveCredential(false)
+    if (ok) lastAutoSavedSignature.current = signature
   }
 
   useEffect(() => {
