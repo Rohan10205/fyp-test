@@ -29,18 +29,7 @@ export default function PasswordsTab({ masterPassword }) {
     }
   }, [])
 
-  useEffect(() => {
-    loadAll()
-    loadActiveTab()
-  }, [loadActiveTab])
-
-  useEffect(() => {
-    const handleFocus = () => loadActiveTab()
-    window.addEventListener("focus", handleFocus)
-    return () => window.removeEventListener("focus", handleFocus)
-  }, [loadActiveTab])
-
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     setLoading(true)
     const result   = await chromeGet(["passwords"])
     const raw      = result.passwords || []
@@ -55,7 +44,18 @@ export default function PasswordsTab({ masterPassword }) {
     )
     setItems(decrypted)
     setLoading(false)
-  }
+  }, [masterPassword])
+
+  useEffect(() => {
+    loadAll()
+    loadActiveTab()
+  }, [loadAll, loadActiveTab])
+
+  useEffect(() => {
+    const handleFocus = () => loadActiveTab()
+    window.addEventListener("focus", handleFocus)
+    return () => window.removeEventListener("focus", handleFocus)
+  }, [loadActiveTab])
 
   async function handleDelete(id) {
     if (!confirm("Delete this password? This cannot be undone.")) return
@@ -136,6 +136,7 @@ export default function PasswordsTab({ masterPassword }) {
           }
 
           try {
+            const submitSelector = 'button[type="submit"], input[type="submit"]'
             const passwordInputs = Array.from(document.querySelectorAll('input[type="password"]'))
               .filter((el) => isEditableField(el) && isVisible(el))
 
@@ -168,14 +169,14 @@ export default function PasswordsTab({ masterPassword }) {
             if (form) {
               if (typeof form.requestSubmit === "function") form.requestSubmit()
               else {
-                const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]')
+                const submitBtn = form.querySelector(submitSelector)
                 if (submitBtn) submitBtn.click()
                 else form.submit()
               }
               return { status: "submitted" }
             }
 
-            const submitBtn = document.querySelector('button[type="submit"], input[type="submit"]')
+            const submitBtn = document.querySelector(submitSelector)
             if (submitBtn) {
               submitBtn.click()
               return { status: "submitted" }
