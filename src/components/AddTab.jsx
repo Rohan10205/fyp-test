@@ -11,6 +11,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
   const [showPw,   setShowPw]   = useState(false)
   const [saving,   setSaving]   = useState(false)
   const autoSaveTimer           = useRef(null)
+  const savingRef               = useRef(false)
   const lastAutoSavedSignature  = useRef("")
 
   // Accept password from generator
@@ -26,7 +27,8 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
   const meta     = strength !== null ? STRENGTH_META[strength] : null
 
   const saveCredential = useCallback(async (autoSave = false) => {
-    if (!site || !username || !password || saving) return false
+    if (!site || !username || !password || savingRef.current) return false
+    savingRef.current = true
     setSaving(true)
     try {
       const enc = await encryptPassword(password, masterPassword)
@@ -43,9 +45,10 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
       showToast(autoSave ? "Auto-save failed" : "Failed to save password", "error")
       return false
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
-  }, [masterPassword, onSaved, password, saving, showToast, site, username])
+  }, [masterPassword, onSaved, password, showToast, site, username])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -60,7 +63,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
 
   useEffect(() => {
     clearTimeout(autoSaveTimer.current)
-    if (!site || !username || !password || saving) return
+    if (!site || !username || !password) return
 
     const signature = `${site.trim()}|${username.trim()}|${password}`
     if (signature === lastAutoSavedSignature.current) return
@@ -71,7 +74,7 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
     }, 1200)
 
     return () => clearTimeout(autoSaveTimer.current)
-  }, [password, saving, saveCredential, site, username])
+  }, [password, saveCredential, site, username])
 
   return (
     <div className="add-tab">
