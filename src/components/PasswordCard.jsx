@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { useToast } from "../context/ToastContext"
 
 const CLEAR_DELAY = 30_000
@@ -10,7 +10,7 @@ function fillLoginForm(username, password) {
     const r = el.getBoundingClientRect()
     if (r.width === 0 || r.height === 0) return false
     const s = window.getComputedStyle(el)
-    return s.display !== "none" && s.visibility !== "hidden" && s.opacity !== "0"
+    return s.display !== "none" && s.visibility !== "hidden" && Number.parseFloat(s.opacity) !== 0
   }
 
   const pwFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(isVisible)
@@ -71,7 +71,7 @@ export default function PasswordCard({ item, onDelete, autoFill = false }) {
     }).catch(() => showToast("Failed to copy", "error"))
   }
 
-  async function handleAutofill({ automatic = false } = {}) {
+  const handleAutofill = useCallback(async ({ automatic = false } = {}) => {
     if (!item.plain) return
     setFilling(true)
     try {
@@ -108,13 +108,13 @@ export default function PasswordCard({ item, onDelete, autoFill = false }) {
     } finally {
       setFilling(false)
     }
-  }
+  }, [item.plain, item.username, showToast])
 
   useEffect(() => {
     if (!autoFill || !item.plain || autoFilledRef.current) return
     autoFilledRef.current = true
     handleAutofill({ automatic: true })
-  }, [autoFill, item.plain])
+  }, [autoFill, item.plain, handleAutofill])
 
   const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.site}&sz=32`
 
