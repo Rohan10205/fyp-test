@@ -5,28 +5,36 @@ const CLEAR_DELAY = 30_000
 
 // Runs inside the target page context (no closure variables allowed)
 function fillLoginForm(username, password) {
-  const pwFields = Array.from(document.querySelectorAll('input[type="password"]')).filter((el) => {
+  function isVisible(el) {
+    if (!el) return false
     const r = el.getBoundingClientRect()
-    return r.width > 0 && r.height > 0
-  })
+    if (r.width === 0 || r.height === 0) return false
+    const s = window.getComputedStyle(el)
+    return s.display !== "none" && s.visibility !== "hidden" && s.opacity !== "0"
+  }
+
+  const pwFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(isVisible)
   if (!pwFields.length) return { success: false, error: "No password field found on this page" }
 
   const pwField = pwFields[0]
+  const ownerForm = pwField.form
   const inputs = Array.from(
-    document.querySelectorAll(
-      'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"])'
+    (ownerForm || document).querySelectorAll(
+      'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="password"])'
     )
-  )
-  const pwIdx = inputs.indexOf(pwField)
+  ).filter(isVisible)
 
   let userField = null
-  for (let i = pwIdx - 1; i >= 0; i--) {
-    const inp = inputs[i]
+  // Prefer inputs that are part of the same form or within 3 DOM siblings above
+  const candidates = ownerForm ? inputs : inputs.slice(Math.max(0, inputs.length - 5))
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const inp = candidates[i]
     const t = (inp.type || "").toLowerCase()
     const name = (inp.name || inp.id || inp.autocomplete || "").toLowerCase()
     if (
-      t === "text" || t === "email" || t === "" ||
-      name.includes("user") || name.includes("email") || name.includes("login")
+      t === "email" ||
+      name.includes("user") || name.includes("email") || name.includes("login") ||
+      (t === "text" && !name.includes("search") && !name.includes("query"))
     ) {
       userField = inp
       break

@@ -14,8 +14,14 @@ function extractHostname(url) {
 
 function siteMatches(credSite, pageHost) {
   if (!pageHost || !credSite) return false
-  const s = credSite.toLowerCase().replace(/^www\./, "").replace(/^https?:\/\//, "")
-  const h = pageHost.toLowerCase()
+  const normalize = (s) =>
+    s.toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0]
+  const s = normalize(credSite)
+  const h = normalize(pageHost)
+  // Exact match, or page is a subdomain of the stored site, or stored site is a subdomain of page
   return h === s || h.endsWith("." + s) || s.endsWith("." + h)
 }
 
@@ -68,6 +74,11 @@ export default function PasswordsTab({ masterPassword }) {
     }
   }
 
+  function handleSearchChange(e) {
+    setSearch(e.target.value)
+    setShowAllSites(false)
+  }
+
   const searchFiltered = search
     ? items.filter(
         (p) =>
@@ -93,7 +104,7 @@ export default function PasswordsTab({ masterPassword }) {
           type="text"
           placeholder="Search by website or username…"
           value={search}
-          onChange={(e) => { setSearch(e.target.value); setShowAllSites(false) }}
+          onChange={handleSearchChange}
         />
         {search && (
           <button className="search__clear" onClick={() => setSearch("")}>✕</button>
