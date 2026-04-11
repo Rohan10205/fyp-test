@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { encryptPassword, getPasswordStrength, STRENGTH_META } from "../utils/crypto"
 import { apiCreateCredential } from "../utils/api"
 import { useToast } from "../context/ToastContext"
@@ -10,6 +10,8 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
   const [password, setPassword] = useState("")
   const [showPw,   setShowPw]   = useState(false)
   const [saving,   setSaving]   = useState(false)
+  const autoSaveTimer           = useRef(null)
+  const lastAutoSavedSignature  = useRef("")
 
   // Accept password from generator
   useEffect(() => {
@@ -23,12 +25,8 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
   const strength = password ? getPasswordStrength(password) : null
   const meta     = strength !== null ? STRENGTH_META[strength] : null
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!site || !username || !password) {
-      showToast("Please fill all fields", "error")
-      return
-    }
+  async function saveCredential(autoSave = false) {
+    if (!site || !username || !password || saving) return false
     setSaving(true)
     try {
       const enc = await encryptPassword(password, masterPassword)
@@ -37,14 +35,44 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
         username:           username.trim(),
         encrypted_password: enc,
       })
-      showToast("Password saved!", "success")
+      showToast(autoSave ? "Password auto-saved!" : "Password saved!", "success")
       setSite(""); setUsername(""); setPassword(""); setShowPw(false)
       onSaved()
+      return true
     } catch {
-      showToast("Failed to save password", "error")
+      showToast(autoSave ? "Auto-save failed" : "Failed to save password", "error")
+      return false
+    } finally {
+      setSaving(false)
     }
-    setSaving(false)
   }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    clearTimeout(autoSaveTimer.current)
+    if (!site || !username || !password) {
+      showToast("Please fill all fields", "error")
+      return
+    }
+    lastAutoSavedSignature.current = `${site.trim()}|${username.trim()}|${password}`
+    await saveCredential(false)
+  }
+
+  useEffect(() => {
+    clearTimeout(autoSaveTimer.current)
+    if (!site || !username || !password || saving) return
+
+    const signature = `${site.trim()}|${username.trim()}|${password}`
+    if (signature === lastAutoSavedSignature.current) return
+
+    autoSaveTimer.current = setTimeout(async () => {
+      lastAutoSavedSignature.current = signature
+      const ok = await saveCredential(true)
+      if (!ok) lastAutoSavedSignature.current = ""
+    }, 1200)
+
+    return () => clearTimeout(autoSaveTimer.current)
+  }, [site, username, password, saving])
 
   return (
     <div className="add-tab">
