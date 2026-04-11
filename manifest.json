@@ -3,7 +3,7 @@
   "name": "Simple Password Manager",
   "version": "1.0",
   "description": "A super simple password manager for beginners",
-  "permissions": ["storage"],
+  "permissions": ["storage", "activeTab", "scripting", "tabs"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

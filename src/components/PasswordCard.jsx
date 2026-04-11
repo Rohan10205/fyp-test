@@ -3,7 +3,7 @@ import { useToast } from "../context/ToastContext"
 
 const CLEAR_DELAY = 30_000
 
-export default function PasswordCard({ item, onDelete }) {
+export default function PasswordCard({ item, onDelete, onAutofill, canAutofill }) {
   const showToast  = useToast()
   const clearTimer = useRef(null)
   const [showPass, setShowPass] = useState(false)
@@ -47,6 +47,14 @@ export default function PasswordCard({ item, onDelete }) {
         <span className="card__value" title={item.username}>{item.username}</span>
         <button className="btn btn--copy" onClick={() => copyText(item.username, "Username")}>
           Copy
+        </button>
+        <button
+          className="btn btn--copy"
+          onClick={() => onAutofill(item)}
+          disabled={!canAutofill || !item.plain}
+          title={canAutofill ? "Autofill and sign in on the current tab" : "Open matching website tab to enable"}
+        >
+          Autofill
         </button>
       </div>
 
