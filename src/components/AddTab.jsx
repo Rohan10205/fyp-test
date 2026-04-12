@@ -1,15 +1,19 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { encryptPassword, getPasswordStrength, STRENGTH_META } from "../utils/crypto"
-import { chromeGet, chromeSet } from "../utils/storage"
+import { apiCreateCredential } from "../utils/api"
 import { useToast } from "../context/ToastContext"
 
 export default function AddTab({ masterPassword, prefillPassword, onSaved, onClearPrefill }) {
   const showToast = useToast()
-  const [website,  setWebsite]  = useState("")
+  const [site,     setSite]     = useState("")
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPw,   setShowPw]   = useState(false)
   const [saving,   setSaving]   = useState(false)
+  const autoSaveTimer           = useRef(null)
+  const savingRef               = useRef(false)
+  const isMountedRef            = useRef(true)
+  const lastAutoSavedSignature  = useRef("")
 
   // Accept password from generator
   useEffect(() => {
@@ -20,36 +24,67 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
     }
   }, [prefillPassword])
 
+  useEffect(() => () => {
+    isMountedRef.current = false
+  }, [])
+
   const strength = password ? getPasswordStrength(password) : null
   const meta     = strength !== null ? STRENGTH_META[strength] : null
 
+  const saveCredential = useCallback(async (autoSave = false) => {
+    if (!site || !username || !password || savingRef.current) return false
+    savingRef.current = true
+    if (isMountedRef.current) setSaving(true)
+    try {
+      const enc = await encryptPassword(password, masterPassword)
+      await apiCreateCredential({
+        site:               site.trim(),
+        username:           username.trim(),
+        encrypted_password: enc,
+      })
+      showToast(autoSave ? "Password auto-saved!" : "Password saved!", "success")
+      if (isMountedRef.current) {
+        setSite("")
+        setUsername("")
+        setPassword("")
+        setShowPw(false)
+      }
+      onSaved()
+      return true
+    } catch {
+      showToast(autoSave ? "Auto-save failed" : "Failed to save password", "error")
+      return false
+    } finally {
+      savingRef.current = false
+      if (isMountedRef.current) setSaving(false)
+    }
+  }, [masterPassword, onSaved, password, showToast, site, username])
+
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!website || !username || !password) {
+    clearTimeout(autoSaveTimer.current)
+    if (!site || !username || !password) {
       showToast("Please fill all fields", "error")
       return
     }
-    setSaving(true)
-    try {
-      const result = await chromeGet(["passwords"])
-      const list   = result.passwords || []
-      const enc    = await encryptPassword(password, masterPassword)
-      list.push({
-        id: Date.now(),
-        website:   website.trim(),
-        username:  username.trim(),
-        password:  enc,
-        createdAt: new Date().toLocaleDateString(),
-      })
-      await chromeSet({ passwords: list })
-      showToast("Password saved!", "success")
-      setWebsite(""); setUsername(""); setPassword(""); setShowPw(false)
-      onSaved()
-    } catch {
-      showToast("Failed to save password", "error")
-    }
-    setSaving(false)
+    lastAutoSavedSignature.current = `${site.trim()}|${username.trim()}|${password}`
+    await saveCredential(false)
   }
+
+  useEffect(() => {
+    clearTimeout(autoSaveTimer.current)
+    if (!site || !username || !password) return
+
+    const signature = `${site.trim()}|${username.trim()}|${password}`
+    if (signature === lastAutoSavedSignature.current) return
+
+    autoSaveTimer.current = setTimeout(() => {
+      lastAutoSavedSignature.current = signature
+      saveCredential(true)
+    }, 1200)
+
+    return () => clearTimeout(autoSaveTimer.current)
+  }, [password, saveCredential, site, username])
 
   return (
     <div className="add-tab">
@@ -62,8 +97,8 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
               className="field__input"
               type="text"
               placeholder="e.g. facebook.com"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
+              value={site}
+              onChange={(e) => setSite(e.target.value)}
             />
           </div>
 

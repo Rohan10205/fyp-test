@@ -1,52 +1,98 @@
 import { useState, useEffect } from "react"
-import { chromeGet, chromeSet } from "../utils/storage"
+import { apiGetCredentials, apiDeleteCredential } from "../utils/api"
 import { decryptPassword } from "../utils/crypto"
 import { useToast } from "../context/ToastContext"
 import PasswordCard from "./PasswordCard"
 
+function extractHostname(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return null
+  }
+}
+
+function siteMatches(credSite, pageHost) {
+  if (!pageHost || !credSite) return false
+  const normalize = (s) =>
+    s.toLowerCase()
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0]
+  const s = normalize(credSite)
+  const h = normalize(pageHost)
+  // Exact match, or page is a subdomain of the stored site, or stored site is a subdomain of page
+  return h === s || h.endsWith("." + s) || s.endsWith("." + h)
+}
+
 export default function PasswordsTab({ masterPassword }) {
-  const showToast    = useToast()
-  const [items, setItems]       = useState([])
-  const [search, setSearch]     = useState("")
-  const [loading, setLoading]   = useState(true)
+  const showToast  = useToast()
+  const [items, setItems]           = useState([])
+  const [search, setSearch]         = useState("")
+  const [loading, setLoading]       = useState(true)
+  const [currentHost, setCurrentHost] = useState(null)
+  const [showAllSites, setShowAllSites] = useState(false)
 
   useEffect(() => {
     loadAll()
+    // Detect the current tab's hostname for page-aware matching
+    if (window.chrome?.tabs?.query) {
+      window.chrome.tabs.query({ active: true, currentWindow: true }, ([tab]) => {
+        if (tab?.url) setCurrentHost(extractHostname(tab.url))
+      })
+    }
   }, [])
 
   async function loadAll() {
     setLoading(true)
-    const result   = await chromeGet(["passwords"])
-    const raw      = result.passwords || []
-    const decrypted = await Promise.all(
-      raw.map(async (p) => {
-        try {
-          return { ...p, plain: await decryptPassword(p.password, masterPassword) }
-        } catch {
-          return { ...p, plain: null }
-        }
-      })
-    )
-    setItems(decrypted)
+    try {
+      const raw       = await apiGetCredentials()
+      const decrypted = await Promise.all(
+        raw.map(async (p) => {
+          try {
+            return { ...p, plain: await decryptPassword(p.encrypted_password, masterPassword) }
+          } catch {
+            return { ...p, plain: null }
+          }
+        })
+      )
+      setItems(decrypted)
+    } catch {
+      showToast("Failed to load passwords", "error")
+    }
     setLoading(false)
   }
 
   async function handleDelete(id) {
     if (!confirm("Delete this password? This cannot be undone.")) return
-    const result = await chromeGet(["passwords"])
-    const updated = (result.passwords || []).filter((p) => p.id !== id)
-    await chromeSet({ passwords: updated })
-    setItems((prev) => prev.filter((p) => p.id !== id))
-    showToast("Password deleted", "success")
+    try {
+      await apiDeleteCredential(id)
+      setItems((prev) => prev.filter((p) => p.id !== id))
+      showToast("Password deleted", "success")
+    } catch {
+      showToast("Failed to delete password", "error")
+    }
   }
 
-  const filtered = search
+  function handleSearchChange(e) {
+    setSearch(e.target.value)
+    setShowAllSites(false)
+  }
+
+  const searchFiltered = search
     ? items.filter(
         (p) =>
-          p.website.toLowerCase().includes(search.toLowerCase()) ||
+          p.site.toLowerCase().includes(search.toLowerCase()) ||
           p.username.toLowerCase().includes(search.toLowerCase())
       )
     : items
+
+  const siteMatched = currentHost
+    ? searchFiltered.filter((p) => siteMatches(p.site, currentHost))
+    : []
+
+  const showingSiteMatches = !search && !showAllSites && siteMatched.length > 0
+  const displayItems = showingSiteMatches ? siteMatched : searchFiltered
 
   return (
     <div className="passwords-tab">
@@ -58,17 +104,34 @@ export default function PasswordsTab({ masterPassword }) {
           type="text"
           placeholder="Search by website or username…"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={handleSearchChange}
         />
         {search && (
           <button className="search__clear" onClick={() => setSearch("")}>✕</button>
         )}
       </div>
 
-      {/* Count badge */}
-      {!loading && items.length > 0 && (
+      {/* Page-match banner */}
+      {!search && siteMatched.length > 0 && (
+        <div className="site-match-banner">
+          <span className="site-match-banner__text">
+            {showAllSites
+              ? `Showing all ${items.length} saved`
+              : `${siteMatched.length} match${siteMatched.length === 1 ? "" : "es"} for ${currentHost}`}
+          </span>
+          <button
+            className="btn btn--ghost site-match-banner__toggle"
+            onClick={() => setShowAllSites((v) => !v)}
+          >
+            {showAllSites ? "Show matches" : "Show all"}
+          </button>
+        </div>
+      )}
+
+      {/* Count badge (when not showing site-match banner) */}
+      {!loading && items.length > 0 && (search || (!siteMatched.length)) && (
         <div className="list-meta">
-          {filtered.length} of {items.length} saved
+          {displayItems.length} of {items.length} saved
         </div>
       )}
 
@@ -76,7 +139,7 @@ export default function PasswordsTab({ masterPassword }) {
       <div className="card-list">
         {loading ? (
           <div className="state-msg">Loading…</div>
-        ) : filtered.length === 0 ? (
+        ) : displayItems.length === 0 ? (
           <div className="state-msg">
             {search ? "No results found" : (
               <>
@@ -87,7 +150,7 @@ export default function PasswordsTab({ masterPassword }) {
             )}
           </div>
         ) : (
-          filtered.map((item) => (
+          displayItems.map((item) => (
             <PasswordCard key={item.id} item={item} onDelete={handleDelete} />
           ))
         )}
