@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { encryptPassword, getPasswordStrength, STRENGTH_META } from "../utils/crypto"
 import { apiCreateCredential } from "../utils/api"
 import { useToast } from "../context/ToastContext"
@@ -10,6 +10,10 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
   const [password, setPassword] = useState("")
   const [showPw,   setShowPw]   = useState(false)
   const [saving,   setSaving]   = useState(false)
+  const autoSaveTimer           = useRef(null)
+  const savingRef               = useRef(false)
+  const isMountedRef            = useRef(true)
+  const lastAutoSavedSignature  = useRef("")
 
   // Accept password from generator
   useEffect(() => {
@@ -20,16 +24,17 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
     }
   }, [prefillPassword])
 
+  useEffect(() => () => {
+    isMountedRef.current = false
+  }, [])
+
   const strength = password ? getPasswordStrength(password) : null
   const meta     = strength !== null ? STRENGTH_META[strength] : null
 
-  async function handleSubmit(e) {
-    e.preventDefault()
-    if (!site || !username || !password) {
-      showToast("Please fill all fields", "error")
-      return
-    }
-    setSaving(true)
+  const saveCredential = useCallback(async (autoSave = false) => {
+    if (!site || !username || !password || savingRef.current) return false
+    savingRef.current = true
+    if (isMountedRef.current) setSaving(true)
     try {
       const enc = await encryptPassword(password, masterPassword)
       await apiCreateCredential({
@@ -37,14 +42,49 @@ export default function AddTab({ masterPassword, prefillPassword, onSaved, onCle
         username:           username.trim(),
         encrypted_password: enc,
       })
-      showToast("Password saved!", "success")
-      setSite(""); setUsername(""); setPassword(""); setShowPw(false)
+      showToast(autoSave ? "Password auto-saved!" : "Password saved!", "success")
+      if (isMountedRef.current) {
+        setSite("")
+        setUsername("")
+        setPassword("")
+        setShowPw(false)
+      }
       onSaved()
+      return true
     } catch {
-      showToast("Failed to save password", "error")
+      showToast(autoSave ? "Auto-save failed" : "Failed to save password", "error")
+      return false
+    } finally {
+      savingRef.current = false
+      if (isMountedRef.current) setSaving(false)
     }
-    setSaving(false)
+  }, [masterPassword, onSaved, password, showToast, site, username])
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    clearTimeout(autoSaveTimer.current)
+    if (!site || !username || !password) {
+      showToast("Please fill all fields", "error")
+      return
+    }
+    lastAutoSavedSignature.current = `${site.trim()}|${username.trim()}|${password}`
+    await saveCredential(false)
   }
+
+  useEffect(() => {
+    clearTimeout(autoSaveTimer.current)
+    if (!site || !username || !password) return
+
+    const signature = `${site.trim()}|${username.trim()}|${password}`
+    if (signature === lastAutoSavedSignature.current) return
+
+    autoSaveTimer.current = setTimeout(() => {
+      lastAutoSavedSignature.current = signature
+      saveCredential(true)
+    }, 1200)
+
+    return () => clearTimeout(autoSaveTimer.current)
+  }, [password, saveCredential, site, username])
 
   return (
     <div className="add-tab">

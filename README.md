@@ -15,6 +15,7 @@ Passwords are **AES-256-GCM encrypted inside the browser** before being sent to 
 6. [API reference](#6-api-reference)
 7. [Environment variables](#7-environment-variables)
 8. [Rebuilding after code changes](#8-rebuilding-after-code-changes)
+9. [Unit tests](#9-unit-tests)
 
 ---
 
@@ -215,3 +216,24 @@ Or use the dev watcher (auto-restarts on file save):
 # inside backend/
 npm run dev
 ```
+
+---
+
+## 9. Unit tests
+
+Run unit tests from the project root:
+
+```bash
+npm test
+```
+
+Current unit coverage includes project code in `src/utils/crypto.js`, including:
+
+- `hashString("Test123!")`
+- `hashString("")`
+- `getPasswordStrength(...)`
+- `generatePassword(...)`
+
+Tests are located in:
+
+`tests/crypto.test.js`
