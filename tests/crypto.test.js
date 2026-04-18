@@ -9,23 +9,42 @@ import {
   STRENGTH_META,
 } from "../src/utils/crypto.js"
 
-test('UT-01 hashString hashes "Test123!" with SHA-256', async () => {
+test('UT-01 hashString hashes "Test123!" with SHA-256', async (t) => {
+  const input = "Test123!"
   const hash = await hashString("Test123!")
-  assert.equal(hash, "54de7f606f2523cba8efac173fab42fb7f59d56ceff974c8fdb7342cf2cfe345")
+  const expected = "54de7f606f2523cba8efac173fab42fb7f59d56ceff974c8fdb7342cf2cfe345"
+  t.diagnostic(`input=${input}`)
+  t.diagnostic(`expectedHash=${expected}`)
+  t.diagnostic(`actualHash=${hash}`)
+  assert.equal(hash, expected)
 })
 
-test("UT-02 hashString hashes empty string correctly", async () => {
+test("UT-02 hashString hashes empty string correctly", async (t) => {
+  const input = ""
   const hash = await hashString("")
-  assert.equal(hash, "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
+  const expected = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  t.diagnostic(`input=(empty string)`)
+  t.diagnostic(`expectedHash=${expected}`)
+  t.diagnostic(`actualHash=${hash}`)
+  assert.equal(hash, expected)
 })
 
-test("UT-03 getPasswordStrength returns expected score bands", () => {
-  assert.equal(getPasswordStrength("abc"), 0)
-  assert.equal(getPasswordStrength("abcdefgh"), 1)
-  assert.equal(getPasswordStrength("Abcdefgh123!"), 4)
+test("UT-03 getPasswordStrength returns expected score bands", (t) => {
+  const weak = "abc"
+  const medium = "abcdefgh"
+  const strong = "Abcdefgh123!"
+  const weakScore = getPasswordStrength(weak)
+  const mediumScore = getPasswordStrength(medium)
+  const strongScore = getPasswordStrength(strong)
+  t.diagnostic(`weakPassword=${weak}, score=${weakScore}, expected=0`)
+  t.diagnostic(`mediumPassword=${medium}, score=${mediumScore}, expected=1`)
+  t.diagnostic(`strongPassword=${strong}, score=${strongScore}, expected=4`)
+  assert.equal(weakScore, 0)
+  assert.equal(mediumScore, 1)
+  assert.equal(strongScore, 4)
 })
 
-test("UT-04 generatePassword returns null when no character groups are selected", () => {
+test("UT-04 generatePassword returns null when no character groups are selected", (t) => {
   const generated = generatePassword({
     length: 16,
     upper: false,
@@ -33,58 +52,78 @@ test("UT-04 generatePassword returns null when no character groups are selected"
     numbers: false,
     symbols: false,
   })
+  t.diagnostic(`options={"length":16,"upper":false,"lower":false,"numbers":false,"symbols":false}`)
+  t.diagnostic(`generated=${String(generated)}`)
   assert.equal(generated, null)
 })
 
-test("UT-05 generatePassword respects selected character groups and requested length", () => {
-  const generated = generatePassword({
+test("UT-05 generatePassword respects selected character groups and requested length", (t) => {
+  const options = {
     length: 24,
     upper: true,
     lower: false,
     numbers: true,
     symbols: false,
-  })
+  }
+  const generated = generatePassword(options)
 
+  t.diagnostic(`options=${JSON.stringify(options)}`)
+  t.diagnostic(`generated=${generated}`)
+  t.diagnostic(`generatedLength=${generated.length}`)
   assert.equal(generated.length, 24)
   assert.match(generated, /^[A-Z0-9]+$/)
 })
 
-test("UT-06 getPasswordStrength scores length+numbers without mixed case/symbols", () => {
-  assert.equal(getPasswordStrength("abcdefgh1234"), 3)
+test("UT-06 getPasswordStrength scores length+numbers without mixed case/symbols", (t) => {
+  const input = "abcdefgh1234"
+  const score = getPasswordStrength(input)
+  t.diagnostic(`input=${input}, score=${score}, expected=3`)
+  assert.equal(score, 3)
 })
 
-test("UT-07 getPasswordStrength is capped at 4", () => {
-  assert.equal(getPasswordStrength("Abcdefgh1234!@#"), 4)
+test("UT-07 getPasswordStrength is capped at 4", (t) => {
+  const input = "Abcdefgh1234!@#"
+  const score = getPasswordStrength(input)
+  t.diagnostic(`input=${input}, score=${score}, expected=4`)
+  assert.equal(score, 4)
 })
 
-test("UT-08 generatePassword lower-only output contains only lowercase chars", () => {
-  const generated = generatePassword({
+test("UT-08 generatePassword lower-only output contains only lowercase chars", (t) => {
+  const options = {
     length: 30,
     upper: false,
     lower: true,
     numbers: false,
     symbols: false,
-  })
+  }
+  const generated = generatePassword(options)
 
+  t.diagnostic(`options=${JSON.stringify(options)}`)
+  t.diagnostic(`generated=${generated}`)
+  t.diagnostic(`generatedLength=${generated.length}`)
   assert.equal(generated.length, 30)
   assert.match(generated, /^[a-z]+$/)
 })
 
-test("UT-09 encryptPassword and decryptPassword round-trip recovers plaintext", async () => {
+test("UT-09 encryptPassword and decryptPassword round-trip recovers plaintext", async (t) => {
   const masterPassword = "Master#2026"
   const plainPassword = "MySitePassword!123"
 
   const encrypted = await encryptPassword(plainPassword, masterPassword)
   const decrypted = await decryptPassword(encrypted, masterPassword)
 
+  t.diagnostic(`masterPassword=${masterPassword}`)
+  t.diagnostic(`plainPassword=${plainPassword}`)
+  t.diagnostic(`encrypted=${encrypted}`)
+  t.diagnostic(`decrypted=${decrypted}`)
   assert.notEqual(encrypted, plainPassword)
   assert.equal(decrypted, plainPassword)
 })
 
-test("UT-10 STRENGTH_META exposes 5 strength levels", () => {
+test("UT-10 STRENGTH_META exposes 5 strength levels", (t) => {
+  const labels = STRENGTH_META.map((item) => item.label)
+  t.diagnostic(`strengthMetaLength=${STRENGTH_META.length}`)
+  t.diagnostic(`strengthMetaLabels=${labels.join(", ")}`)
   assert.equal(STRENGTH_META.length, 5)
-  assert.deepEqual(
-    STRENGTH_META.map((item) => item.label),
-    ["Very Weak", "Weak", "Fair", "Strong", "Very Strong"]
-  )
+  assert.deepEqual(labels, ["Very Weak", "Weak", "Fair", "Strong", "Very Strong"])
 })
