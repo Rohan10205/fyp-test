@@ -3,6 +3,7 @@
 
 :root {
   --popup-padding: 10px;
+  --popup-content-min-height: calc(100vh - (var(--popup-padding) * 2));
   --brand:         #7c3aed;
   --brand-dark:    #6d28d9;
   --brand-light:   #f3e8ff;
@@ -60,7 +61,7 @@ body {
 
 /* Lock screen */
 .lock-bg {
-  min-height: calc(100vh - (var(--popup-padding) * 2));
+  min-height: var(--popup-content-min-height);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -277,7 +278,7 @@ button { cursor: pointer; font-family: var(--font); }
 .app {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - (var(--popup-padding) * 2));
+  min-height: var(--popup-content-min-height);
   border-radius: var(--radius-xl);
   overflow: hidden;
   border: 1px solid var(--brand-border);
