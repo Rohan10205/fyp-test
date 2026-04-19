@@ -45,8 +45,8 @@ export default function AuthScreen({ onAuthenticated }) {
   }
 
   return (
-    <div className="lock-bg">
-      <div className="lock-card">
+    <div className="lock-bg auth-bg">
+      <div className="lock-card auth-card">
         <div className="lock-logo">
           <div className="lock-logo__ring" />
           <img src={iconUrl} alt="Vaultword logo" className="lock-logo__img" />

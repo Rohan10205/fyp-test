@@ -47,9 +47,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+html, body, #root {
+  width: 420px;
+  height: 540px;
+  overflow: hidden;
+}
+
 /* Lock screen */
 .lock-bg {
-  min-height: 100vh;
+  min-height: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,6 +223,53 @@ button { cursor: pointer; font-family: var(--font); }
 .btn--ghost:hover { background: rgba(255,255,255,.22); }
 .btn--full     { width: 100%; padding: 12px; font-size: 14.5px; }
 .btn--icon     { padding: 7px 10px; font-size: 16px; border-radius: var(--radius-sm); width: auto; }
+
+/* Auth screen compact layout to avoid popup scrolling */
+.auth-bg {
+  padding: 12px;
+}
+
+.auth-card {
+  padding: 24px 20px 20px;
+}
+
+.auth-card .lock-logo {
+  width: 54px;
+  height: 54px;
+  margin-bottom: 10px;
+}
+
+.auth-card .lock-logo__img {
+  width: 36px;
+  height: 36px;
+}
+
+.auth-card .lock-title {
+  font-size: 24px;
+}
+
+.auth-card .lock-subtitle {
+  margin-bottom: 14px;
+}
+
+.auth-card .lock-form {
+  gap: 10px;
+}
+
+.auth-card .field {
+  gap: 4px;
+}
+
+.auth-card .field__input {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.auth-card .btn--full {
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 14px;
+}
 
 .btn--copy {
   background: var(--green-light);
