@@ -110,8 +110,8 @@ test("UT-09 encryptPassword and decryptPassword round-trip recovers plaintext", 
   const encrypted = await encryptPassword(plainPassword, masterPassword)
   const decrypted = await decryptPassword(encrypted, masterPassword)
 
-  t.diagnostic(`masterPasswordLength=${masterPassword.length}`)
-  t.diagnostic(`plainPasswordLength=${plainPassword.length}`)
+  t.diagnostic("masterPasswordProvided=true")
+  t.diagnostic("plainPasswordProvided=true")
   t.diagnostic(`encrypted=<redacted, length=${encrypted.length}>`)
   t.diagnostic(`decryptedMatchesPlain=${decrypted === plainPassword}`)
   assert.notEqual(encrypted, plainPassword)
