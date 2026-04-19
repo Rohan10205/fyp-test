@@ -36,9 +36,9 @@ test("UT-03 getPasswordStrength returns expected score bands", (t) => {
   const weakScore = getPasswordStrength(weak)
   const mediumScore = getPasswordStrength(medium)
   const strongScore = getPasswordStrength(strong)
-  t.diagnostic(`weakPasswordLength=${weak.length}, score=${weakScore}, expected=0`)
-  t.diagnostic(`mediumPasswordLength=${medium.length}, score=${mediumScore}, expected=1`)
-  t.diagnostic(`strongPasswordLength=${strong.length}, score=${strongScore}, expected=4`)
+  t.diagnostic(`weakPasswordLength=<redacted>, score=${weakScore}, expected=0`)
+  t.diagnostic(`mediumPasswordLength=<redacted>, score=${mediumScore}, expected=1`)
+  t.diagnostic(`strongPasswordLength=<redacted>, score=${strongScore}, expected=4`)
   assert.equal(weakScore, 0)
   assert.equal(mediumScore, 1)
   assert.equal(strongScore, 4)
@@ -76,14 +76,14 @@ test("UT-05 generatePassword respects selected character groups and requested le
 test("UT-06 getPasswordStrength scores length+numbers without mixed case/symbols", (t) => {
   const input = "abcdefgh1234"
   const score = getPasswordStrength(input)
-  t.diagnostic(`input=${input}, score=${score}, expected=3`)
+  t.diagnostic(`input=<redacted>, score=${score}, expected=3`)
   assert.equal(score, 3)
 })
 
 test("UT-07 getPasswordStrength is capped at 4", (t) => {
   const input = "Abcdefgh1234!@#"
   const score = getPasswordStrength(input)
-  t.diagnostic(`input=${input}, score=${score}, expected=4`)
+  t.diagnostic(`input=<redacted>, score=${score}, expected=4`)
   assert.equal(score, 4)
 })
 
