@@ -227,13 +227,64 @@ Run unit tests from the project root:
 npm test
 ```
 
-Current unit coverage includes project code in `src/utils/crypto.js`, including:
-
-- `hashString("Test123!")`
-- `hashString("")`
-- `getPasswordStrength(...)`
-- `generatePassword(...)`
-
-Tests are located in:
+Unit tests are currently implemented in:
 
 `tests/crypto.test.js`
+
+They validate cryptography and password utility behavior from `src/utils/crypto.js`.
+
+### 9.1 Unit test scope
+
+| ID | Function under test | What is validated | Expected result |
+|----|----------------------|-------------------|-----------------|
+| UT-01 | `hashString("Test123!")` | SHA-256 hashing for a known input | Hash matches the known expected digest |
+| UT-02 | `hashString("")` | SHA-256 hashing for empty input edge case | Hash matches SHA-256 empty-string digest |
+| UT-03 | `getPasswordStrength(...)` | Score bands across weak/medium/strong samples | Returned score aligns with scoring rules |
+| UT-04 | `generatePassword(...)` | No selected character groups | Returns `null` safely |
+| UT-05 | `generatePassword(...)` | Length and group constraints for mixed options | Output length is correct and chars respect selected groups |
+| UT-06 | `getPasswordStrength(...)` | Length+numbers scenario without full complexity | Score reflects partial complexity correctly |
+| UT-07 | `getPasswordStrength(...)` | Upper-bound behavior | Score is capped at max level |
+| UT-08 | `generatePassword(...)` | Lowercase-only generation | Output contains only lowercase characters |
+| UT-09 | `encryptPassword(...)` + `decryptPassword(...)` | Encryption/decryption round-trip | Decrypted output equals original plaintext |
+| UT-10 | `STRENGTH_META` | Strength metadata completeness | Exactly 5 ordered strength levels are exposed |
+
+### 9.2 Unit test execution notes
+
+- Test runner: Node built-in `node:test`
+- Current output includes diagnostics (`input`, `expected`, `actual`) for easier debugging in CI/local runs.
+- Recommended to run tests before every build or release candidate.
+
+---
+
+## 10. System tests (manual end-to-end)
+
+System tests validate complete user workflows across frontend and backend integration.
+
+### 10.1 Preconditions
+
+- Backend API running (`backend/`): `npm start` or `npm run dev`
+- Extension frontend built (`project root`): `npm run build`
+- Extension loaded in Chrome from `dist/`
+- Test account and sample credential data available
+
+### 10.2 System test cases
+
+| ID | Scenario | Steps | Expected result |
+|----|----------|-------|-----------------|
+| ST-01 | User registration | Open auth screen → Sign up with valid details | Account is created and user can proceed to login |
+| ST-02 | Successful login | Enter valid credentials | User is authenticated and redirected to main app |
+| ST-03 | Invalid login handling | Attempt login with wrong password | Access denied with safe error message |
+| ST-04 | Add credential | Open Add tab → Enter site/username/password → Save | New credential appears in saved password list |
+| ST-05 | View/decrypt credential | Open saved credential and reveal/copy password flow | Data is displayed correctly and decrypts with valid session/master key |
+| ST-06 | Password generation flow | Open Generator tab → Configure options → Generate → Save generated password | Generated password follows selected constraints and is saved correctly |
+| ST-07 | Search/filter credentials | Use search on password list | Only matching items are shown |
+| ST-08 | Update credential | Edit an existing credential and save | Updated values persist after refresh/reopen |
+| ST-09 | Delete credential | Delete a selected credential | Credential is removed and no longer retrievable from UI |
+| ST-10 | Session lock/logout | Lock or logout, then attempt protected actions | User is prompted for re-authentication and protected data is hidden |
+| ST-11 | Persistence across restart | Close and reopen extension after creating entries | Previously saved encrypted entries remain accessible after login |
+| ST-12 | API connectivity failure handling | Stop backend temporarily and perform save/fetch operations | UI shows user-friendly error states without crashing |
+
+### 10.3 Suggested execution frequency
+
+- Run the full system suite before demos, staging sign-off, or production release.
+- Run critical smoke subset (`ST-02`, `ST-04`, `ST-06`, `ST-10`, `ST-12`) after any auth/storage/API change.
