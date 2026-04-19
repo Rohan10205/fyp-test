@@ -46,8 +46,9 @@
 
 body {
   width: 420px;
-  min-height: 540px;
+  height: 540px;
   padding: 10px;
+  overflow: hidden;
   font-family: var(--font);
   font-size: 14px;
   line-height: 1.5;
@@ -58,21 +59,22 @@ body {
 
 /* Lock screen */
 .lock-bg {
-  min-height: 100vh;
+  min-height: calc(100vh - 20px);
   display: flex;
   align-items: center;
   justify-content: center;
   background: linear-gradient(155deg, #4c1d95 0%, #6d28d9 55%, #8b5cf6 100%);
-  padding: 20px;
+  padding: 12px;
+  overflow: hidden;
 }
 
 .lock-card {
   width: 100%;
-  max-width: 340px;
+  max-width: 336px;
   background: rgba(255,255,255,.12);
   border: 1px solid rgba(255,255,255,.2);
   border-radius: var(--radius-xl);
-  padding: 36px 28px 32px;
+  padding: 24px 20px 20px;
   text-align: center;
   box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255,255,255,.04) inset;
   backdrop-filter: blur(16px);
@@ -83,8 +85,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px; height: 64px;
-  margin-bottom: 14px;
+  width: 56px; height: 56px;
+  margin-bottom: 10px;
 }
 
 .lock-logo__ring {
@@ -103,15 +105,15 @@ body {
 .lock-logo__icon { font-size: 34px; }
 
 .lock-logo__img {
-  width: 42px;
-  height: 42px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .lock-title {
   color: #fff;
-  font-size: 28px;
+  font-size: 24px;
   font-weight: 800;
   letter-spacing: -.5px;
   margin-bottom: 4px;
@@ -119,11 +121,21 @@ body {
 
 .lock-subtitle {
   color: rgba(255,255,255,.5);
-  font-size: 13px;
-  margin-bottom: 24px;
+  font-size: 12.5px;
+  margin-bottom: 16px;
 }
 
-.lock-form { display: flex; flex-direction: column; gap: 12px; }
+.lock-form { display: flex; flex-direction: column; gap: 10px; }
+
+.lock-form .field__input {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+
+.lock-form .btn--full {
+  padding: 10px;
+  font-size: 14px;
+}
 
 .lock-error {
   color: #fca5a5;
