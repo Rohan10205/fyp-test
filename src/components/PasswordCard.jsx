@@ -116,11 +116,12 @@ export default function PasswordCard({ item, onDelete }) {
         />
         <span className="card__site">{item.site}</span>
         <button
-          className="btn btn--danger-ghost btn--icon"
-          title="Delete"
+          className="btn card__delete-btn"
+          title="Delete password"
+          aria-label={`Delete password for ${item.site}`}
           onClick={() => onDelete(item.id)}
         >
-          Del
+          🗑 Delete
         </button>
       </div>
 
