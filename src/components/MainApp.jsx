@@ -10,7 +10,7 @@ const TABS = [
   { id: "generator", label: "Generator", icon: "" },
 ]
 
-export default function MainApp({ masterPassword, onLock }) {
+export default function MainApp({ masterPassword, onLock, onLogout }) {
   const [tab, setTab]                   = useState("passwords")
   const [prefillPassword, setPrefill]   = useState("")
 
@@ -27,9 +27,14 @@ export default function MainApp({ masterPassword, onLock }) {
           <img src={iconUrl} alt="Vaultword logo" className="app-header__logo" />
           <span className="app-header__name">Vaultword</span>
         </div>
-        <button className="btn btn--ghost btn--icon" title="Lock vault" onClick={onLock}>
-          Lock
-        </button>
+        <div className="app-header__actions">
+          <button className="btn btn--ghost btn--icon" title="Lock vault" onClick={onLock}>
+            Lock
+          </button>
+          <button className="btn btn--ghost btn--icon" title="Sign out" onClick={onLogout}>
+            Sign Out
+          </button>
+        </div>
       </header>
 
       {/* Tabs */}

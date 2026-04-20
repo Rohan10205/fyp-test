@@ -15,7 +15,7 @@ function generateRecoveryCode() {
   return Array.from(array, (b) => chars[b % chars.length]).join("")
 }
 
-export default function LockScreen({ hasVault, onUnlocked }) {
+export default function LockScreen({ hasVault, onUnlocked, onLogout }) {
   const showToast = useToast()
 
   // Shared
@@ -390,6 +390,13 @@ export default function LockScreen({ hasVault, onUnlocked }) {
                 Forgot password?
               </button>
             )}
+            <button
+              type="button"
+              className="btn btn--ghost btn--full"
+              onClick={onLogout}
+            >
+              Sign Out
+            </button>
           </form>
         )}
       </div>

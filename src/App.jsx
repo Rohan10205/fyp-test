@@ -1,40 +1,84 @@
 import { useState, useEffect } from "react"
 import { ToastProvider } from "./context/ToastContext"
+import AuthScreen from "./components/AuthScreen"
 import LockScreen from "./components/LockScreen"
 import MainApp from "./components/MainApp"
-import { chromeGet } from "./utils/storage"
+import { chromeGet, chromeSet, chromeSessionGet, chromeSessionSet, chromeSessionRemove } from "./utils/storage"
+
+// Vault stays unlocked for 30 minutes after last use
+const SESSION_DURATION = 30 * 60 * 1000
 
 export default function App() {
-  const [masterPassword, setMasterPassword] = useState(null) // null = locked
-  const [hasVault, setHasVault]             = useState(null) // null = loading
+  // null = still loading from storage
+  const [authToken,      setAuthToken]      = useState(null)
+  const [masterPassword, setMasterPassword] = useState(null)
+  const [hasVault,       setHasVault]       = useState(false)
 
   useEffect(() => {
-    chromeGet(["masterPasswordHash"]).then((r) =>
+    chromeGet(["authToken", "masterPasswordHash"]).then(async (r) => {
+      const token = r.authToken || ""
+      setAuthToken(token)
       setHasVault(!!r.masterPasswordHash)
-    )
+
+      // Restore vault session if still valid (within SESSION_DURATION)
+      if (token) {
+        const session = await chromeSessionGet(["vaultSession"])
+        const vs = session.vaultSession
+        if (vs?.masterPassword && vs.expiresAt > Date.now()) {
+          setMasterPassword(vs.masterPassword)
+          // Refresh the expiry so activity keeps the session alive
+          await chromeSessionSet({
+            vaultSession: { masterPassword: vs.masterPassword, expiresAt: Date.now() + SESSION_DURATION },
+          })
+        }
+      }
+    })
   }, [])
 
-  function handleUnlock(password) {
-    setMasterPassword(password)
+  async function handleAuthenticated() {
+    const r = await chromeGet(["authToken", "masterPasswordHash"])
+    setAuthToken(r.authToken || "")
+    setHasVault(!!r.masterPasswordHash)
   }
 
-  function handleLock() {
+  async function handleUnlocked(pwd) {
+    await chromeSessionSet({
+      vaultSession: { masterPassword: pwd, expiresAt: Date.now() + SESSION_DURATION },
+    })
+    setHasVault(true)
+    setMasterPassword(pwd)
+  }
+
+  async function handleLock() {
+    await chromeSessionRemove(["vaultSession"])
     setMasterPassword(null)
   }
 
-  if (hasVault === null) return null // loading
+  async function handleLogout() {
+    await chromeSet({ authToken: null })
+    await chromeSessionRemove(["vaultSession"])
+    setAuthToken("")
+    setMasterPassword(null)
+  }
+
+  // Still loading initial state
+  if (authToken === null) return null
 
   return (
     <ToastProvider>
-      {masterPassword ? (
-        <MainApp masterPassword={masterPassword} onLock={handleLock} />
+      {!authToken ? (
+        <AuthScreen onAuthenticated={handleAuthenticated} />
+      ) : masterPassword ? (
+        <MainApp
+          masterPassword={masterPassword}
+          onLock={handleLock}
+          onLogout={handleLogout}
+        />
       ) : (
         <LockScreen
           hasVault={hasVault}
-          onUnlocked={(pwd) => {
-            setHasVault(true)
-            handleUnlock(pwd)
-          }}
+          onUnlocked={handleUnlocked}
+          onLogout={handleLogout}
         />
       )}
     </ToastProvider>

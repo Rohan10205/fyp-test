@@ -3,10 +3,61 @@ import { useToast } from "../context/ToastContext"
 
 const CLEAR_DELAY = 30_000
 
+// Runs inside the target page context (no closure variables allowed)
+function fillLoginForm(username, password) {
+  function isVisible(el) {
+    if (!el) return false
+    const r = el.getBoundingClientRect()
+    if (r.width === 0 || r.height === 0) return false
+    const s = window.getComputedStyle(el)
+    return s.display !== "none" && s.visibility !== "hidden" && s.opacity !== "0"
+  }
+
+  const pwFields = Array.from(document.querySelectorAll('input[type="password"]')).filter(isVisible)
+  if (!pwFields.length) return { success: false, error: "No visible password field found on this page" }
+
+  const pwField = pwFields[0]
+  const ownerForm = pwField.form
+  const inputs = Array.from(
+    (ownerForm || document).querySelectorAll(
+      'input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="password"])'
+    )
+  ).filter(isVisible)
+
+  let userField = null
+  // Prefer inputs that are part of the same form or within 3 DOM siblings above
+  const candidates = ownerForm ? inputs : inputs.slice(Math.max(0, inputs.length - 5))
+  for (let i = candidates.length - 1; i >= 0; i--) {
+    const inp = candidates[i]
+    const t = (inp.type || "").toLowerCase()
+    const name = (inp.name || inp.id || inp.autocomplete || "").toLowerCase()
+    if (
+      t === "email" ||
+      name.includes("user") || name.includes("email") || name.includes("login") ||
+      (t === "text" && !name.includes("search") && !name.includes("query"))
+    ) {
+      userField = inp
+      break
+    }
+  }
+
+  function fill(el, val) {
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set
+    setter.call(el, val)
+    el.dispatchEvent(new Event("input", { bubbles: true }))
+    el.dispatchEvent(new Event("change", { bubbles: true }))
+  }
+
+  if (userField) fill(userField, username)
+  fill(pwField, password)
+  return { success: true, filledUsername: !!userField }
+}
+
 export default function PasswordCard({ item, onDelete }) {
   const showToast  = useToast()
   const clearTimer = useRef(null)
   const [showPass, setShowPass] = useState(false)
+  const [filling,  setFilling]  = useState(false)
 
   function copyText(text, label) {
     navigator.clipboard.writeText(text).then(() => {
@@ -19,7 +70,39 @@ export default function PasswordCard({ item, onDelete }) {
     }).catch(() => showToast("Failed to copy", "error"))
   }
 
-  const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.website}&sz=32`
+  async function handleAutofill() {
+    if (!item.plain) return
+    setFilling(true)
+    try {
+      const tabs = await new Promise((resolve) =>
+        window.chrome.tabs.query({ active: true, currentWindow: true }, resolve)
+      )
+      const tab = tabs?.[0]
+      if (!tab?.id) { showToast("No active tab found", "error"); return }
+
+      const results = await window.chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        func: fillLoginForm,
+        args: [item.username, item.plain],
+      })
+
+      const result = results?.[0]?.result
+      if (result?.success) {
+        showToast(
+          result.filledUsername ? "Username & password filled!" : "Password filled!",
+          "success"
+        )
+      } else {
+        showToast(result?.error || "No login form found on this page", "error")
+      }
+    } catch (err) {
+      showToast("Autofill failed: " + (err.message || "Unknown error"), "error")
+    } finally {
+      setFilling(false)
+    }
+  }
+
+  const faviconSrc = `https://www.google.com/s2/favicons?domain=${item.site}&sz=32`
 
   return (
     <div className="card">
@@ -31,7 +114,7 @@ export default function PasswordCard({ item, onDelete }) {
           alt=""
           onError={(e) => { e.currentTarget.style.display = "none" }}
         />
-        <span className="card__site">{item.website}</span>
+        <span className="card__site">{item.site}</span>
         <button
           className="btn btn--danger-ghost btn--icon"
           title="Delete"
@@ -69,10 +152,28 @@ export default function PasswordCard({ item, onDelete }) {
         )}
       </div>
 
-      {/* Date */}
-      {item.createdAt && (
-        <span className="card__date">Added {item.createdAt}</span>
+      {/* Autofill */}
+      {item.plain && (
+        <div className="card__row">
+          <button
+            className="btn btn--primary btn--full"
+            style={{ marginTop: 4 }}
+            onClick={handleAutofill}
+            disabled={filling}
+            title="Fill username and password into the current page's login form"
+          >
+            {filling ? "Filling…" : "⚡ Autofill"}
+          </button>
+        </div>
       )}
+
+      {/* Date */}
+      {item.created_at && (() => {
+        const d = new Date(item.created_at)
+        return isNaN(d.getTime()) ? null : (
+          <span className="card__date">Added {d.toLocaleDateString()}</span>
+        )
+      })()}
     </div>
   )
 }
