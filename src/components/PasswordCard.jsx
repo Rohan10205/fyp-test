@@ -121,7 +121,7 @@ export default function PasswordCard({ item, onDelete }) {
           aria-label={`Delete password for ${item.site}`}
           onClick={() => onDelete(item.id)}
         >
-          🗑 Delete
+          Delete
         </button>
       </div>
 
