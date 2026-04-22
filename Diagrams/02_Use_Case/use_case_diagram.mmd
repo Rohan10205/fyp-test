@@ -1,0 +1,32 @@
+flowchart LR
+    USER[User]
+
+    subgraph SYSTEM[Vaultword Password Manager]
+        UC1([Register Account])
+        UC2([Login])
+        UC3([Set Master Password])
+        UC4([Add Credential])
+        UC5([View Saved Credentials])
+        UC6([Reveal Password])
+        UC7([Copy Username or Password])
+        UC8([Generate Strong Password])
+        UC9([Delete Credential])
+        UC10([Reset Master Password with Recovery Code])
+        UC11([Lock and Unlock Vault])
+    end
+
+    USER --> UC1
+    USER --> UC2
+    USER --> UC3
+    USER --> UC4
+    USER --> UC5
+    USER --> UC6
+    USER --> UC7
+    USER --> UC8
+    USER --> UC9
+    USER --> UC10
+    USER --> UC11
+
+    UC4 -. includes .-> UC8
+    UC6 -. extends .-> UC5
+    UC7 -. extends .-> UC5

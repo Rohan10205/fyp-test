@@ -1,0 +1,23 @@
+flowchart TB
+    subgraph CLIENT_DEVICE[User Device]
+        BROWSER[Chrome Browser]
+        EXT[Vaultword Extension]
+        LOCAL[(Browser Local Storage)]
+    end
+
+    subgraph HOST_MACHINE[Local Host Machine]
+        API[Node.js Express API Server]
+        DB[(SQLite Database File)]
+        ENV[Environment Configuration]
+    end
+
+    USER[User] --> BROWSER
+    BROWSER --> EXT
+    EXT --> LOCAL
+
+    EXT -->|HTTP on localhost:3000| API
+    API --> DB
+    API --> ENV
+
+    EXT -->|JWT Authorization Header| API
+    EXT -->|Encrypted credential payload| API

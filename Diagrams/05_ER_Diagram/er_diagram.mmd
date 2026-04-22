@@ -1,0 +1,20 @@
+erDiagram
+    USERS {
+        INTEGER id PK
+        TEXT email UNIQUE
+        TEXT password_hash
+        DATETIME created_at
+    }
+
+    CREDENTIALS {
+        INTEGER id PK
+        INTEGER user_id FK
+        TEXT site
+        TEXT username
+        TEXT encrypted_password
+        TEXT notes
+        DATETIME created_at
+        DATETIME updated_at
+    }
+
+    USERS ||--o{ CREDENTIALS : owns

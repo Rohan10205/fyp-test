@@ -1,0 +1,53 @@
+mindmap
+  root((Vaultword Password Manager))
+    Project Goals
+      Secure password storage
+      Easy credential management
+      Strong password generation
+    Frontend Extension
+      React popup interface
+      Tabs
+        Passwords Tab
+        Add Tab
+        Generator Tab
+      Authentication Screens
+        Registration
+        Login
+        Vault lock and unlock
+      Local Features
+        Client-side encryption and decryption
+        Clipboard copy
+        Search and filter
+    Backend API
+      Node.js and Express API server
+      Routes
+        Authentication routes
+        Credential routes
+      Middleware
+        JWT authentication
+      Validation and error handling
+    Security Model
+      AES-256-GCM for credentials
+      Master-password-based protection
+      JWT session authentication
+      Password hashing for user accounts
+      Recovery code reset flow
+    Database Layer
+      SQLite database
+      Users table
+      Credentials table
+      Data access module
+    Core Flows
+      Account registration and login
+      Save encrypted credential
+      Retrieve and decrypt credential
+      Update and delete credential
+      Generate strong passwords
+    Deployment and Execution
+      Localhost API server
+      Built Chrome extension from the dist folder
+      Environment variables
+        JWT_SECRET
+        PORT
+        DB_PATH
+        ALLOWED_ORIGINS

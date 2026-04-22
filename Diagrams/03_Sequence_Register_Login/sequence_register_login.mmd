@@ -1,0 +1,30 @@
+sequenceDiagram
+    autonumber
+    participant U as User
+    participant UI as Extension UI
+    participant API as Backend API
+    participant DB as SQLite Database
+
+    Note over U,DB: Registration Flow
+    U->>UI: Enter email and password
+    UI->>API: POST /auth/register {email, password}
+    API->>DB: Check existing user by email
+    DB-->>API: User does not exist
+    API->>DB: Insert new user with hashed password
+    DB-->>API: User created
+    API-->>UI: 201 Created + JWT token
+    UI-->>U: Account created and session started
+
+    Note over U,DB: Login Flow
+    U->>UI: Enter email and password
+    UI->>API: POST /auth/login {email, password}
+    API->>DB: Find user by email
+    DB-->>API: User record
+    API->>API: Validate password hash
+    API-->>UI: 200 OK + JWT token
+    UI-->>U: Login successful
+
+    alt Invalid password
+        API-->>UI: 401 Unauthorized
+        UI-->>U: Show authentication error
+    end

@@ -1,0 +1,36 @@
+flowchart TD
+    A([Start]) --> B[Open extension popup]
+    B --> C{Has account?}
+
+    C -- No --> D[Register account]
+    D --> E[Login]
+    C -- Yes --> E[Login]
+
+    E --> F{Master password set?}
+    F -- No --> G[Set master password]
+    G --> H[Enter main vault]
+    F -- Yes --> H[Enter main vault]
+
+    H --> I{Select action}
+
+    I --> J[Add credential]
+    J --> K[Encrypt password locally]
+    K --> L[Send encrypted data to API]
+    L --> H
+
+    I --> M[View credentials]
+    M --> N{Reveal password?}
+    N -- Yes --> O[Decrypt locally]
+    O --> H
+    N -- No --> H
+
+    I --> P[Generate password]
+    P --> Q[Apply generated password]
+    Q --> H
+
+    I --> R[Lock vault]
+    R --> S[Unlock with master password]
+    S --> H
+
+    H --> T[Logout]
+    T --> U([End])

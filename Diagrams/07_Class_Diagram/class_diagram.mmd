@@ -1,0 +1,98 @@
+classDiagram
+    class App {
+      +render()
+    }
+
+    class LockScreen {
+      +handleSetup()
+      +handleUnlock()
+      +handleOTPReset()
+    }
+
+    class MainApp {
+      +setTab()
+      +onLock()
+      +onLogout()
+    }
+
+    class AddTab {
+      +onSave()
+      +setSite()
+      +setUsername()
+      +setPassword()
+    }
+
+    class PasswordsTab {
+      +fetchCredentials()
+      +filterCredentials()
+      +handleDelete()
+    }
+
+    class GeneratorTab {
+      +generatePassword()
+      +copyResult()
+      +usePassword()
+    }
+
+    class PasswordCard {
+      +toggleReveal()
+      +copyText()
+      +deleteItem()
+    }
+
+    class ApiClient {
+      +register(email, password)
+      +login(email, password)
+      +getCredentials(token)
+      +addCredential(token, payload)
+      +updateCredential(token, id, payload)
+      +deleteCredential(token, id)
+    }
+
+    class CryptoUtils {
+      +encryptString(plain, key)
+      +decryptString(cipher, key)
+      +generatePassword(options)
+      +getPasswordStrength(value)
+      +hashString(value)
+    }
+
+    class AuthRoute {
+      +register(req, res)
+      +login(req, res)
+    }
+
+    class CredentialRoute {
+      +list(req, res)
+      +create(req, res)
+      +update(req, res)
+      +remove(req, res)
+    }
+
+    class AuthMiddleware {
+      +verifyJWT(req, res, next)
+    }
+
+    class Database {
+      +query(sql, params)
+      +initialize()
+    }
+
+    App --> LockScreen
+    App --> MainApp
+    MainApp --> AddTab
+    MainApp --> PasswordsTab
+    MainApp --> GeneratorTab
+    PasswordsTab --> PasswordCard
+
+    AddTab --> ApiClient
+    PasswordsTab --> ApiClient
+    GeneratorTab --> CryptoUtils
+    AddTab --> CryptoUtils
+    PasswordsTab --> CryptoUtils
+
+    ApiClient --> AuthRoute
+    ApiClient --> CredentialRoute
+    AuthRoute --> Database
+    CredentialRoute --> AuthMiddleware
+    CredentialRoute --> Database

@@ -1,0 +1,43 @@
+flowchart LR
+    U[User] -->|Interacts with| CE[Chrome Extension UI]
+
+    subgraph Extension[Browser Extension Layer]
+        CE --> AC[Authentication Screen]
+        CE --> MV[Main Vault Interface]
+        MV --> ADD[Add Password Tab]
+        MV --> LIST[Passwords Tab]
+        MV --> GEN[Password Generator Tab]
+        CE --> CRYPTO[Client-side AES-256-GCM Encryption]
+        CE --> STORE[Local Storage for Session Data]
+    end
+
+    AC -->|Register and Login| API
+    ADD -->|Submit encrypted credentials| API
+    LIST -->|Fetch encrypted credentials| API
+
+    CRYPTO -->|Encrypt before sending| API
+    API -->|JSON responses and JWT| CE
+
+    subgraph Backend[Local Backend Server Layer]
+        API[Express REST API]
+        AUTH[Auth Routes]
+        CREDS[Credential Routes]
+        MIDDLE[JWT Middleware]
+        DBL[Database Access Layer]
+    end
+
+    API --> AUTH
+    API --> CREDS
+    AUTH --> MIDDLE
+    CREDS --> MIDDLE
+    CREDS --> DBL
+
+    subgraph Data[Data Layer]
+        SQLITE[(SQLite Database)]
+        USERS[(users table)]
+        CREDENTIALS[(credentials table)]
+    end
+
+    DBL --> SQLITE
+    SQLITE --> USERS
+    SQLITE --> CREDENTIALS
